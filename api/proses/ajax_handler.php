@@ -5,7 +5,7 @@
 error_reporting(0);
 session_start();
 
-if (!isset($_SESSION['id'])) {
+iif (!isset($_COOKIE['id'])) {
     header('Content-Type: application/json');
     echo json_encode(['status'=>'error','msg'=>'Unauthorized']);
     exit();

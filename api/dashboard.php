@@ -1,9 +1,13 @@
 <?php
 session_start();
 require __DIR__ . '/service/koneksi.php';
-if (!isset($_SESSION['id'])) { header("Location: login.php"); exit(); }
-$role     = $_SESSION['role'];
-$userName = $_SESSION['nama'];
+// Cek COOKIE, bukan SESSION
+if (!isset($_COOKIE['id'])) { 
+    header("Location: /api/login.php"); 
+    exit(); 
+}
+$role     = $_COOKIE['role'];
+$userName = $_COOKIE['nama'];
 ?>
 <!DOCTYPE html>
 <html lang="id">

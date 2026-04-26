@@ -11,10 +11,13 @@ if (mysqli_num_rows($query) == 1) {
     $user = mysqli_fetch_assoc($query);
     
     if (password_verify($password, $user['password'])) {
-        $_SESSION['id'] = $user['id'];
-        $_SESSION['nama'] = $user['nama'];
-        $_SESSION['role'] = $user['role'];
-        header("Location: /../dashboard.php");
+        // GANTI $_SESSION MENJADI SETCOOKIE (Berlaku 1 Hari)
+        setcookie('id', $user['id'], time() + 86400, "/");
+        setcookie('nama', $user['nama'], time() + 86400, "/");
+        setcookie('role', $user['role'], time() + 86400, "/");
+        
+        // Kembalikan ke path awal yang benar
+        header("Location: /api/dashboard.php");
         exit();
     } else { 
         $_SESSION['error'] = "Password salah"; 
