@@ -2,7 +2,7 @@
 <?php
 // Data dari TiDB Cloud
 $host = 'gateway01.ap-southeast-1.prod.alicloud.tidbcloud.com';
-$port = 400;
+$port = 4000;
 $user = '3mriGZL353dsAeb.root';
 $pass = '4TfsmG4kfEMp6sFn';
 $db   = 'db-uts-pemweb';
