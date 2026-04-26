@@ -1,6 +1,6 @@
 <?php
 session_start();
-require __DIR__ .  '../service/koneksi.php';
+require __DIR__ .  '/../service/koneksi.php';
 $email = $_POST['email'];
 $password = $_POST['password'];
 $query = mysqli_query($koneksi, "SELECT * FROM users WHERE email='$email'");

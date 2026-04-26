@@ -1,7 +1,7 @@
 <?php
 session_start();
 if (!isset($_SESSION['id'])) { header("Location: /api/login.php"); exit(); }
-require __DIR__ . 'service/koneksi.php';
+require __DIR__ . '/../service/koneksi.php';
 $role     = $_SESSION['role'];
 $userName = $_SESSION['nama'];
 ?>
