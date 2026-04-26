@@ -2,24 +2,30 @@
 require_once __DIR__ . '/bps_widget.php';
 $domain  = bps_active_domain();
 $wilayah = bps_active_wilayah();
-$isAdmin = ($_COOKIE['role']==='admin');
+
+// 1. PENGAMAN COOKIE
+$isAdmin = (isset($_COOKIE['role']) && $_COOKIE['role'] === 'admin');
 
 $where = filter_where($koneksi);
 $queryChart = "SELECT pupuk, SUM(CAST(REPLACE(REPLACE(jumlah, ',', ''), ' ', '') AS UNSIGNED)) as total FROM distribusi WHERE $where GROUP BY pupuk";
 $resultChart = mysqli_query($koneksi, $queryChart);
 $chartLabels = []; $chartValues = []; $totalRealisasiKg = 0;
-while ($row = mysqli_fetch_assoc($resultChart)) {
-    $chartLabels[] = $row['pupuk'];
-    $val = (int)$row['total'];
-    $chartValues[] = $val;
-    $totalRealisasiKg += $val;
+
+// 2. PENGAMAN DATABASE (Mencegah crash jika query gagal)
+if ($resultChart) {
+    while ($row = mysqli_fetch_assoc($resultChart)) {
+        $chartLabels[] = $row['pupuk'];
+        $val = (int)$row['total'];
+        $chartValues[] = $val;
+        $totalRealisasiKg += $val;
+    }
 }
 if (empty($chartLabels)) { $chartLabels = ['Belum Ada Data']; $chartValues = [0]; }
 
 $targetTon = 68; $targetKg = $targetTon * 1000;
 $persentase = ($targetKg > 0) ? round(($totalRealisasiKg / $targetKg) * 100, 1) : 0;
 
-// --- TAMBAHAN: GRAFIK PER PROVINSI (dari file kedua) ---
+// --- GRAFIK PER PROVINSI ---
 $qProv = mysqli_query($koneksi,
     "SELECT provinsi,
             SUM(CAST(REPLACE(REPLACE(jumlah,',',''),' ','') AS UNSIGNED)) as total
@@ -29,13 +35,15 @@ $qProv = mysqli_query($koneksi,
      ORDER BY total DESC
      LIMIT 15");
 $provLabels=[]; $provValues=[];
-while($r=mysqli_fetch_assoc($qProv)){
-    $provLabels[]=$r['provinsi'];
-    $provValues[]=(int)$r['total'];
+if ($qProv) {
+    while($r=mysqli_fetch_assoc($qProv)){
+        $provLabels[]=$r['provinsi'];
+        $provValues[]=(int)$r['total'];
+    }
 }
 $hasProvData = !empty($provLabels);
 
-// --- TAMBAHAN: GRAFIK TREND BULANAN (dari file kedua) ---
+// --- GRAFIK TREND BULANAN ---
 $qBulan = mysqli_query($koneksi,
     "SELECT DATE_FORMAT(tgl,'%Y-%m') as bulan,
             DATE_FORMAT(tgl,'%b %Y') as label_bulan,
@@ -46,32 +54,37 @@ $qBulan = mysqli_query($koneksi,
      ORDER BY bulan ASC
      LIMIT 12");
 $bulanLabels=[]; $bulanValues=[];
-while($r=mysqli_fetch_assoc($qBulan)){
-    $bulanLabels[]=$r['label_bulan'];
-    $bulanValues[]=(int)$r['total'];
+if ($qBulan) {
+    while($r=mysqli_fetch_assoc($qBulan)){
+        $bulanLabels[]=$r['label_bulan'];
+        $bulanValues[]=(int)$r['total'];
+    }
 }
 $hasBulanData=!empty($bulanLabels);
-// --- AKHIR TAMBAHAN ---
 
 $queryLaporan = mysqli_query($koneksi, "SELECT * FROM laporan ORDER BY created_at DESC");
 $laporan = [];
-while($r = mysqli_fetch_assoc($queryLaporan)) $laporan[] = $r;
+if ($queryLaporan) {
+    while($r = mysqli_fetch_assoc($queryLaporan)) $laporan[] = $r;
+}
 
-// BPS API
+// 3. PENGAMAN API BPS (Tambah is_array untuk mencegah crash TypeError)
 $bpsTbl = bps_fetch('list/',['model'=>'statictable','domain'=>$domain,'lang'=>'ind','keyword'=>'produksi','page'=>1]);
-$tblList = !empty($bpsTbl['data'][1]) ? array_slice($bpsTbl['data'][1],0,4) : [];
+$tblList = (is_array($bpsTbl) && !empty($bpsTbl['data'][1])) ? array_slice($bpsTbl['data'][1],0,4) : [];
 if(empty($tblList)){
     $bpsTbl2 = bps_fetch('list/',['model'=>'statictable','domain'=>'0000','lang'=>'ind','keyword'=>'produksi padi','page'=>1]);
-    $tblList = !empty($bpsTbl2['data'][1]) ? array_slice($bpsTbl2['data'][1],0,4) : [];
+    $tblList = (is_array($bpsTbl2) && !empty($bpsTbl2['data'][1])) ? array_slice($bpsTbl2['data'][1],0,4) : [];
 }
+
 $bpsBrs = bps_fetch('list/',['model'=>'pressrelease','domain'=>$domain,'lang'=>'ind','keyword'=>'produksi','page'=>1]);
-$brsList = !empty($bpsBrs['data'][1]) ? array_slice($bpsBrs['data'][1],0,3) : [];
+$brsList = (is_array($bpsBrs) && !empty($bpsBrs['data'][1])) ? array_slice($bpsBrs['data'][1],0,3) : [];
 if(empty($brsList)){
     $bpsBrs2 = bps_fetch('list/',['model'=>'pressrelease','domain'=>'0000','lang'=>'ind','keyword'=>'produksi','page'=>1]);
-    $brsList = !empty($bpsBrs2['data'][1]) ? array_slice($bpsBrs2['data'][1],0,3) : [];
+    $brsList = (is_array($bpsBrs2) && !empty($bpsBrs2['data'][1])) ? array_slice($bpsBrs2['data'][1],0,3) : [];
 }
+
 $bpsInf = bps_fetch('list/',['model'=>'infographic','domain'=>'0000','lang'=>'ind','page'=>1,'keyword'=>'pupuk']);
-$infList = !empty($bpsInf['data'][1]) ? array_slice($bpsInf['data'][1],0,2) : [];
+$infList = (is_array($bpsInf) && !empty($bpsInf['data'][1])) ? array_slice($bpsInf['data'][1],0,2) : [];
 ?>
 
 <?= bps_wilayah_badge() ?>
