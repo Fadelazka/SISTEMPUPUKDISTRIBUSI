@@ -10,7 +10,7 @@ if(mysqli_num_rows($query)==1){
         $_SESSION['id'] = $user['id'];
         $_SESSION['nama'] = $user['nama'];
         $_SESSION['role'] = $user['role'];
-        header("Location: /../dashboard.php");
-    } else { $_SESSION['error']="Password salah"; header("Location: /../login.php"); }
-} else { $_SESSION['error']="Email tidak terdaftar"; header("Location: /../login.php"); }
+        header("Location: /api/dashboard.php");
+    } else { $_SESSION['error']="Password salah"; header("Location: /api/login.php"); }
+} else { $_SESSION['error']="Email tidak terdaftar"; header("Location: /api/login.php"); }
 ?>
