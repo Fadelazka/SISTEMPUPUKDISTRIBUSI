@@ -44,7 +44,7 @@
         <?php if(isset($_SESSION['error'])): ?>
             <div class="error-msg" style="display:block; margin-bottom:15px;"><?= $_SESSION['error']; unset($_SESSION['error']); ?></div>
         <?php endif; ?>
-        <form action="/api/proses/prosesLogin.php" method="POST">
+        <form action="proses/prosesLogin.php" method="POST">
             <div class="input-group"><i class="fas fa-envelope"></i><input type="email" name="email" placeholder="Alamat Email" required autocomplete="off"></div>
             <div class="input-group"><i class="fas fa-lock"></i><input type="password" name="password" placeholder="Kata Sandi" required></div>
             <button type="submit" class="login-btn"><i class="fas fa-arrow-right-to-bracket"></i> Masuk ke Dashboard</button>

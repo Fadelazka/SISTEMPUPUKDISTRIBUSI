@@ -14,7 +14,7 @@ if (mysqli_num_rows($query) == 1) {
         $_SESSION['id'] = $user['id'];
         $_SESSION['nama'] = $user['nama'];
         $_SESSION['role'] = $user['role'];
-        header("Location: /api/dashboard.php");
+        header("Location: /../dashboard.php");
         exit();
     } else { 
         $_SESSION['error'] = "Password salah"; 
