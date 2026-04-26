@@ -10,7 +10,13 @@ if(mysqli_num_rows($query)==1){
         $_SESSION['id'] = $user['id'];
         $_SESSION['nama'] = $user['nama'];
         $_SESSION['role'] = $user['role'];
-        header("Location: /api/dashboard.php");
+        
+        // MATIKAN REDIRECT SEMENTARA UNTUK CEK
+        // header("Location: /api/dashboard.php");
+        echo "Login Berhasil!<br>";
+        var_dump($_SESSION);
+        die(); // Hentikan script sampai di sini
+    }
     } else { $_SESSION['error']="Password salah"; header("Location: /api/login.php"); }
-} else { $_SESSION['error']="Email tidak terdaftar"; header("Location: /api/login.php"); }
+ else { $_SESSION['error']="Email tidak terdaftar"; header("Location: /api/login.php"); }
 ?>
