@@ -11,7 +11,7 @@ if (!isset($_SESSION['id'])) {
     exit();
 }
 
-require '../service/koneksi.php';
+require __DIR__ .  '../service/koneksi.php';
 
 $action = trim($_POST['action'] ?? '');
 
