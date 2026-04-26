@@ -2,7 +2,7 @@
 require_once __DIR__ . '/bps_widget.php';
 $domain  = bps_active_domain();
 $wilayah = bps_active_wilayah();
-$isAdmin = ($_SESSION['role']==='admin');
+$isAdmin = ($_COOKIE['role']==='admin');
 $where   = filter_where($koneksi);
 
 $query = mysqli_query($koneksi,"SELECT * FROM petani WHERE $where ORDER BY id DESC");
