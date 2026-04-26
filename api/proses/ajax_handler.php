@@ -5,7 +5,7 @@
 error_reporting(0);
 session_start();
 
-if (!isset($_SESSION['id'])) {
+if (!isset($_COOKIE['id'])) {
     header('Content-Type: application/json');
     echo json_encode(['status'=>'error','msg'=>'Unauthorized']);
     exit();
@@ -169,7 +169,7 @@ if ($action === 'save') {
     }
 
     // USER
-    elseif ($type === 'user' && $_SESSION['role']==='admin') {
+    elseif ($type === 'user' && $_COOKIE['role']==='admin') {
         $id    = intval($_POST['id']??0);
         $nama  = esc('nama');
         $email = esc('email');
@@ -210,7 +210,7 @@ if ($action === 'delete') {
         $tbl=$map[$type];
         mysqli_query($koneksi,"DELETE FROM $tbl WHERE id=$id");
         echo json_encode(['status'=>'success']);
-    } elseif ($type==='user' && $_SESSION['role']==='admin') {
+    } elseif ($type==='user' && $_COOKIE['role']==='admin') {
         mysqli_query($koneksi,"DELETE FROM users WHERE id=$id AND role!='admin'");
         echo json_encode(['status'=>'success']);
     } else {
@@ -236,10 +236,13 @@ if ($action === 'updateProfile') {
            : "tgl_lahir=NULL";
     $parts[]=$tgl;
     $sql="UPDATE users SET ".implode(',',$parts)." WHERE id=$uid";
-    if(mysqli_query($koneksi,$sql)){
-        $_SESSION['nama']=$_POST['nama']??$_SESSION['nama'];
-        echo json_encode(['status'=>'success']);
-    } else {
+    $uid    = $_COOKIE['id'];
+// ... (kode lainnya)
+if(mysqli_query($koneksi,$sql)){
+    $newName = $_POST['nama'] ?? $_COOKIE['nama'];
+    setcookie('nama', $newName, time() + 86400, "/"); // Update cookie nama
+    echo json_encode(['status'=>'success']);
+} else {
         echo json_encode(['status'=>'error','msg'=>mysqli_error($koneksi)]);
     }
     exit();
