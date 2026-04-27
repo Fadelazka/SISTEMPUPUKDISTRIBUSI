@@ -14,7 +14,7 @@ if (mysqli_num_rows($query) == 1) {
         // GANTI $_SESSION MENJADI SETCOOKIE (Berlaku 1 Hari)
         setcookie('id', $user['id'], time() + 86400, "/");
         setcookie('nama', $user['nama'], time() + 86400, "/");
-        setcookie('role', $user['role'], time() + 86400, "/");
+        setcookie('role', $user['role'], time() + 86400, "/"); // Ini akan otomatis membaca 'admin' atau 'petugas'
         
         // Kembalikan ke path awal yang benar
         header("Location: /api/dashboard.php");
