@@ -31,10 +31,16 @@ $userName = $_COOKIE['nama'];
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <style>
-        /* Custom scrollbar & Modal base */
+       /* Custom scrollbar & Modal base */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         .modal { display:none; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); }
+        
+        /* Perbaikan Dropdown Putih di HP */
+        select option {
+            color: #1e293b !important;
+            background-color: #ffffff !important;
+        }
     </style>
 </head>
 <body class="bg-light text-slate-700 antialiased overflow-x-hidden">
