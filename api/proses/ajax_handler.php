@@ -4,7 +4,13 @@
  */
 error_reporting(0);
 session_start();
-
+// Jaring Pengaman Error Database
+set_exception_handler(function($e) {
+    http_response_code(200); // Paksa status 200 OK agar JQuery tidak mengira ini koneksi error
+    header('Content-Type: application/json');
+    echo json_encode(['status'=>'error', 'msg'=>'Crash DB: ' . $e->getMessage()]);
+    exit();
+});
 if (!isset($_COOKIE['id'])) {
     header('Content-Type: application/json');
     echo json_encode(['status'=>'error','msg'=>'Unauthorized']);
