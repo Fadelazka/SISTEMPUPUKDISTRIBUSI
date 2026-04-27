@@ -1,162 +1,68 @@
 <?php
 require_once __DIR__ . '/bps_widget.php';
-$domain  = bps_active_domain();
-$wilayah = bps_active_wilayah();
 $isAdmin = ($_COOKIE['role']==='admin');
 $where   = filter_where($koneksi);
-
 $query = mysqli_query($koneksi,"SELECT * FROM distribusi WHERE $where ORDER BY tgl DESC");
-$distribusi=[];
-while($r=mysqli_fetch_assoc($query)) $distribusi[]=$r;
-
-$totalKg=0;
-foreach($distribusi as $d) $totalKg+=intval(preg_replace('/[^0-9]/','',$d['jumlah']));
-
-$qPupuk=mysqli_query($koneksi,"SELECT pupuk,COUNT(*) as cnt,SUM(CAST(REPLACE(REPLACE(jumlah,',',''),' ','') AS UNSIGNED)) as total FROM distribusi WHERE $where GROUP BY pupuk ORDER BY total DESC");
-$pupukStats=[];
-while($r=mysqli_fetch_assoc($qPupuk)) $pupukStats[]=$r;
-
-// BPS API aman
-$bpsBrs  = bps_fetch('list/',['model'=>'pressrelease','domain'=>$domain,'lang'=>'ind','keyword'=>'pupuk','page'=>1]);
-$brsList = (is_array($bpsBrs) && !empty($bpsBrs['data'][1])) ? array_slice($bpsBrs['data'][1],0,3) : [];
-if(empty($brsList)){
-    $fb = bps_fetch('list/',['model'=>'pressrelease','domain'=>'0000','lang'=>'ind','keyword'=>'pupuk','page'=>1]);
-    $brsList = (is_array($fb) && !empty($fb['data'][1])) ? array_slice($fb['data'][1],0,3) : [];
-}
-$bpsTbl  = bps_fetch('list/',['model'=>'statictable','domain'=>$domain,'lang'=>'ind','keyword'=>'subsidi','page'=>1]);
-$tblList = (is_array($bpsTbl) && !empty($bpsTbl['data'][1])) ? array_slice($bpsTbl['data'][1],0,3) : [];
-if(empty($tblList)){
-    $fb2 = bps_fetch('list/',['model'=>'statictable','domain'=>'0000','lang'=>'ind','keyword'=>'harga','page'=>1]);
-    $tblList = (is_array($fb2) && !empty($fb2['data'][1])) ? array_slice($fb2['data'][1],0,3) : [];
-}
+$distribusi=[]; while($r=mysqli_fetch_assoc($query)) $distribusi[]=$r;
 ?>
 
 <?= bps_wilayah_badge() ?>
 
-<?php if($isAdmin): ?>
-<div style="margin-bottom:20px;text-align:right;">
-    <button id="tambahDistribusiBtn" class="btn-admin" style="font-size:14px;padding:10px 22px;">
-        <i class="fas fa-plus"></i> Tambah Distribusi
-    </button>
+<div class="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-6">
+    <h2 class="text-xl md:text-2xl font-bold text-primary flex items-center gap-2"><i class="fas fa-truck"></i> Log Distribusi</h2>
+    <?php if($isAdmin): ?>
+    <button id="tambahDistribusiBtn" class="bg-primary hover:bg-accent text-white px-5 py-2.5 rounded-full font-medium shadow-md flex items-center gap-2 text-sm transition-all"><i class="fas fa-plus"></i> Tambah Log</button>
+    <?php endif; ?>
 </div>
-<?php endif; ?>
 
-<?php if(has_filter()): ?>
-<div style="background:#fffbeb;border:1.5px solid #fde68a;border-radius:16px;padding:14px 20px;margin-bottom:20px;display:flex;align-items:center;gap:12px;">
-    <i class="fas fa-filter" style="color:#d97706;font-size:18px;"></i>
-    <div>
-        <div style="font-size:15px;font-weight:700;color:#92400e;">Filter Aktif</div>
-        <div style="font-size:14px;color:#b45309;margin-top:2px;">
-            Menampilkan <strong><?= count($distribusi) ?> catatan</strong> distribusi ·
-            Total: <strong><?= number_format($totalKg,0,',','.') ?> kg</strong>
-            dari: <strong><?= htmlspecialchars(implode(' › ',array_filter([filter_prov(),filter_kota(),filter_kec()]))) ?></strong>
+<div class="grid grid-cols-1 gap-4 md:hidden mb-8">
+    <?php if(empty($distribusi)): ?>
+    <div class="bg-white p-6 rounded-2xl text-center text-slate-400 text-sm font-medium">Belum ada data distribusi.</div>
+    <?php else: foreach($distribusi as $d): ?>
+    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+        <div class="flex justify-between items-center mb-3">
+            <span class="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded"><?= date('d M Y',strtotime($d['tgl'])) ?></span>
+            <span class="bg-emerald-100 text-emerald-700 text-[10px] font-black px-2 py-1 rounded-full uppercase tracking-tighter"><?= htmlspecialchars($d['pupuk']) ?></span>
         </div>
-    </div>
-</div>
-<?php endif; ?>
-
-<div class="stats-grid" style="margin-bottom:24px;">
-    <div class="stat-card" style="border-top:4px solid #f5e7a4;">
-        <div class="stat-title" style="font-size:14px;">📋 Total Catatan</div>
-        <div class="stat-number"><?= count($distribusi) ?></div>
-        <div style="font-size:14px;color:#64748b;margin-top:4px;">transaksi distribusi<?= has_filter()?' di wilayah ini':'' ?></div>
-    </div>
-    <div class="stat-card" style="border-top:4px solid #86efac;">
-        <div class="stat-title" style="font-size:14px;">⚖️ Total Pupuk Tersalur</div>
-        <div class="stat-number" style="font-size:28px;"><?= number_format($totalKg,0,',','.') ?> kg</div>
-        <div style="font-size:14px;color:#64748b;margin-top:4px;"><?= number_format($totalKg/1000,2) ?> ton tersalurkan</div>
-    </div>
-    <?php foreach(array_slice($pupukStats,0,2) as $ps): ?>
-    <div class="stat-card">
-        <div class="stat-title" style="font-size:14px;">🌱 <?= htmlspecialchars($ps['pupuk']) ?></div>
-        <div class="stat-number" style="font-size:28px;"><?= number_format($ps['total'],0,',','.') ?></div>
-        <div style="font-size:14px;color:#64748b;margin-top:4px;">kg · <?= $ps['cnt'] ?> transaksi</div>
-    </div>
-    <?php endforeach; ?>
-</div>
-
-<h3 style="margin-bottom:16px;font-size:20px;color:#1e4a3b;font-weight:800;">
-    🚛 Log Distribusi Pupuk Subsidi
-    <?= has_filter()?'<span style="font-size:14px;font-weight:500;color:#64748b;margin-left:8px;">('.count($distribusi).' catatan)</span>':'' ?>
-</h3>
-<div style="overflow-x:auto;">
-<table>
-    <thead>
-        <tr><th>Tanggal</th><th>Kelompok Tani</th><th>Provinsi</th><th>Kota/Kab</th><th>Kecamatan</th><th>Jenis Pupuk</th><th>Jumlah</th><th>Tujuan</th><th>No. DO</th><th>Aksi</th></tr>
-    </thead>
-    <tbody>
-        <?php if(empty($distribusi)): ?>
-        <tr><td colspan="10" style="text-align:center;padding:30px;font-size:15px;color:#94a3b8;">
-            <?= has_filter()?'Tidak ada distribusi di wilayah yang dipilih. Coba ubah atau reset filter.':'Belum ada data distribusi.' ?>
-        </td></tr>
-        <?php else: foreach($distribusi as $d): ?>
-        <tr>
-            <td><?= date('d/m/Y',strtotime($d['tgl'])) ?></td>
-            <td><?= htmlspecialchars($d['kelompok']) ?></td>
-            <td><?= htmlspecialchars($d['provinsi']??'-') ?></td>
-            <td><?= htmlspecialchars($d['kota']??'-') ?></td>
-            <td><?= htmlspecialchars($d['kecamatan']??'-') ?></td>
-            <td><span class="badge"><?= htmlspecialchars($d['pupuk']) ?></span></td>
-            <td><?= htmlspecialchars($d['jumlah']) ?></td>
-            <td><?= htmlspecialchars($d['tujuan']) ?></td>
-            <td><?= htmlspecialchars($d['no_do']) ?></td>
-            <td>
-                <?php if($isAdmin): ?>
-                <button class="btn-sm btn-edit-distribusi" data-id="<?= $d['id'] ?>"><i class="fas fa-edit"></i></button>
-                <button class="btn-sm btn-hapus-distribusi" data-id="<?= $d['id'] ?>" style="background:#fee2e2;"><i class="fas fa-trash"></i></button>
-                <?php else: ?><span style="color:#94a3b8;">—</span><?php endif; ?>
-            </td>
-        </tr>
-        <?php endforeach; endif; ?>
-    </tbody>
-</table>
-</div>
-
-<div class="info-box" style="font-size:14px;padding:18px 24px;line-height:1.9;">
-    <i class="fas fa-map-marked-alt" style="color:#2d6a4f;margin-right:6px;"></i>
-    <strong>Keterangan Data Distribusi:</strong><br>
-    • Menampilkan <strong><?= count($distribusi) ?> catatan distribusi</strong> <?= has_filter()?'dari wilayah: <strong>'.htmlspecialchars(implode(' › ',array_filter([filter_prov(),filter_kota(),filter_kec()]))).'</strong>':'dari seluruh wilayah' ?><br>
-    • Total pupuk tersalur: <strong><?= number_format($totalKg,0,',','.') ?> kg</strong> (<?= number_format($totalKg/1000,2) ?> ton)<br>
-    <?php foreach($pupukStats as $ps): ?>
-    • <?= htmlspecialchars($ps['pupuk']) ?>: <strong><?= number_format($ps['total'],0,',','.') ?> kg</strong> (<?= $ps['cnt'] ?> transaksi)<br>
-    <?php endforeach; ?>
-    • BPS Domain: <?= htmlspecialchars($domain) ?> (<?= htmlspecialchars($wilayah) ?>) &nbsp;|&nbsp; Update: <?= date('d F Y') ?>
-</div>
-
-<?php if(!empty($brsList)): ?>
-<div style="display:flex;align-items:center;gap:10px;margin:28px 0 14px;">
-    <span style="background:#1e4a3b;color:#f5e7a4;font-size:10px;font-weight:800;padding:3px 12px;border-radius:20px;">BPS</span>
-    <h3 style="font-size:18px;color:#1e4a3b;margin:0;">Siaran Pers BPS — Pupuk & Subsidi</h3>
-</div>
-<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:24px;">
-    <?php foreach($brsList as $b): ?>
-    <div class="info-box" style="border-left:5px solid #f5e7a4;padding:14px 20px;">
-        <div style="font-weight:700;font-size:15px;color:#1e4a3b;"><?= htmlspecialchars($b['title']??'-') ?></div>
-        <div style="font-size:14px;color:#64748b;margin-top:4px;">
-            📅 <?= !empty($b['rl_date'])?date('d M Y',strtotime($b['rl_date'])):'-' ?>
-            <?php if(!empty($b['pdf'])): ?> · <a href="<?= htmlspecialchars($b['pdf']) ?>" target="_blank" style="color:#2d6a4f;font-weight:600;">📥 PDF</a><?php endif; ?>
+        <h4 class="font-extrabold text-primary text-lg mb-1 leading-tight"><?= htmlspecialchars($d['kelompok']) ?></h4>
+        <p class="text-xs text-slate-500 mb-4 flex items-center gap-1"><i class="fas fa-map-pin text-slate-300"></i> <?= htmlspecialchars($d['tujuan']) ?></p>
+        
+        <div class="bg-slate-50 rounded-xl p-3 border border-slate-100 flex justify-between items-center">
+            <div><p class="text-[9px] uppercase font-bold text-slate-400">Jumlah</p><p class="text-sm font-black text-primary"><?= htmlspecialchars($d['jumlah']) ?></p></div>
+            <div class="text-right"><p class="text-[9px] uppercase font-bold text-slate-400">No. DO</p><p class="text-[11px] font-mono font-bold text-slate-600"><?= htmlspecialchars($d['no_do']) ?></p></div>
         </div>
-    </div>
-    <?php endforeach; ?>
-</div>
-<?php endif; ?>
 
-<?php if(!empty($tblList)): ?>
-<div style="display:flex;align-items:center;gap:10px;margin:0 0 14px;">
-    <span style="background:#1e4a3b;color:#f5e7a4;font-size:10px;font-weight:800;padding:3px 12px;border-radius:20px;">BPS</span>
-    <h3 style="font-size:18px;color:#1e4a3b;margin:0;">Referensi Tabel BPS — <?= htmlspecialchars($wilayah) ?></h3>
-</div>
-<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:24px;">
-    <?php foreach($tblList as $tbl): ?>
-    <div class="info-box" style="border-left:5px solid #2d6a4f;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding:14px 20px;">
-        <div>
-            <div style="font-weight:700;font-size:15px;color:#1e4a3b;"><?= htmlspecialchars($tbl['title']??'-') ?></div>
-            <div style="font-size:13px;color:#64748b;margin-top:3px;"><?= htmlspecialchars($tbl['subj']??'-') ?> · <?= !empty($tbl['updt_date'])?date('d M Y',strtotime($tbl['updt_date'])):'-' ?></div>
+        <?php if($isAdmin): ?>
+        <div class="flex gap-2 mt-4 pt-3 border-t border-slate-100">
+            <button class="flex-1 bg-slate-100 text-primary py-2 rounded-lg text-xs font-bold btn-edit-distribusi" data-id="<?= $d['id'] ?>"><i class="fas fa-edit mr-1"></i> Edit</button>
+            <button class="bg-red-50 text-red-600 px-4 py-2 rounded-lg text-xs font-bold btn-hapus-distribusi" data-id="<?= $d['id'] ?>"><i class="fas fa-trash"></i></button>
         </div>
-        <?php if(!empty($tbl['excel'])): ?>
-        <a href="<?= htmlspecialchars($tbl['excel']) ?>" target="_blank" class="btn-admin" style="text-decoration:none;font-size:13px;padding:6px 16px;"><i class="fas fa-file-excel"></i> Excel</a>
         <?php endif; ?>
     </div>
-    <?php endforeach; ?>
+    <?php endforeach; endif; ?>
 </div>
-<?php endif; ?>
+
+<div class="hidden md:block bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden mb-8">
+    <table class="w-full text-left text-sm">
+        <thead class="bg-slate-50 text-primary border-b border-slate-100">
+            <tr><th class="p-4 font-bold">Tanggal</th><th class="p-4 font-bold">Kelompok Tani</th><th class="p-4 font-bold">Jenis</th><th class="p-4 font-bold">Jumlah</th><th class="p-4 font-bold">Tujuan</th><th class="p-4 font-bold text-center">Aksi</th></tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+            <?php foreach($distribusi as $d): ?>
+            <tr class="hover:bg-slate-50">
+                <td class="p-4 text-slate-500 font-medium"><?= date('d/m/Y',strtotime($d['tgl'])) ?></td>
+                <td class="p-4 font-bold text-slate-800"><?= htmlspecialchars($d['kelompok']) ?></td>
+                <td class="p-4"><span class="bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-md text-[10px] font-black uppercase"><?= htmlspecialchars($d['pupuk']) ?></span></td>
+                <td class="p-4 font-bold text-primary"><?= htmlspecialchars($d['jumlah']) ?></td>
+                <td class="p-4 text-slate-600"><?= htmlspecialchars($d['tujuan']) ?></td>
+                <td class="p-4 text-center">
+                    <?php if($isAdmin): ?>
+                    <button class="text-primary hover:bg-slate-100 p-2 rounded-lg btn-edit-distribusi" data-id="<?= $d['id'] ?>"><i class="fas fa-edit"></i></button>
+                    <button class="text-red-500 hover:bg-red-50 p-2 rounded-lg btn-hapus-distribusi" data-id="<?= $d['id'] ?>"><i class="fas fa-trash"></i></button>
+                    <?php else: ?>-<?php endif; ?>
+                </td>
+            </tr>
+            <?php endforeach; ?>
+        </tbody>
+    </table>
+</div>
