@@ -103,7 +103,7 @@ if ($action === 'save') {
 
     function esc($k){ global $koneksi; return mysqli_real_escape_string($koneksi,$_POST[$k]??''); }
     function escv($v){ global $koneksi; return mysqli_real_escape_string($koneksi,$v); }
-
+}
     // PETANI
     if ($type === 'petani') {
         $id        = intval($_POST['id']??0);
@@ -116,7 +116,7 @@ if ($action === 'save') {
         $provinsi  = esc('petani_provinsi');
         $kota      = esc('petani_kota');
         $kecamatan = esc('petani_kecamatan');
-
+    }
         if ($id>0) {
             $sql = "INSERT INTO petani(nama,desa,luas_lahan,alokasi,status,tgl_terima,provinsi,kota,kecamatan) VALUES('$nama','$desa','$luas','$alokasi','$status',$tgl,'$provinsi','$kota','$kecamatan')";
         } else {
