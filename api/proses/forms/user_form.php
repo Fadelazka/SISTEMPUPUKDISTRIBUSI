@@ -1,5 +1,5 @@
 <?php
-if($_SESSION['role']!=='admin'){ echo "<div style='color:red;padding:20px;'>Akses ditolak.</div>"; exit(); }
+if($_COOKIE['role']!=='admin'){ echo "<div style='color:red;padding:20px;'>Akses ditolak.</div>"; exit(); }
 require_once __DIR__ . '/../pages/bps_widget.php';
 $id   = intval($_POST['id']??0);
 $data = ['nama'=>'','email'=>'','role'=>'petugas','provinsi'=>'','kota'=>'','kecamatan'=>''];

@@ -1,5 +1,5 @@
 <?php
-if($_COOKIE['role']!=='admin'){ echo "<div style='color:red;padding:20px;'>Akses ditolak.</div>"; exit(); }
+if($_COOKIE['role']!='admin'){ echo "<div class='error'>Akses ditolak.</div>"; exit(); }
 require_once __DIR__ . '/bps_widget.php';
 $domain  = bps_active_domain();
 $wilayah = bps_active_wilayah();
