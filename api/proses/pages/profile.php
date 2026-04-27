@@ -1,7 +1,7 @@
 <?php
-$userId = $_SESSION['id'];
+$userId = isset($_COOKIE['id']) ? intval($_COOKIE['id']) : 0;
 $query = mysqli_query($koneksi, "SELECT * FROM users WHERE id = $userId");
-$user = mysqli_fetch_assoc($query);
+$user = $query ? mysqli_fetch_assoc($query) : ['nama'=>'Gagal Memuat', 'email'=>'', 'bio'=>''];
 
 $totalDistribusi = mysqli_fetch_assoc(mysqli_query($koneksi, "SELECT COUNT(*) as total FROM distribusi"))['total'];
 $totalPetani = mysqli_fetch_assoc(mysqli_query($koneksi, "SELECT COUNT(*) as total FROM petani"))['total'];
@@ -363,10 +363,8 @@ $aktivitas = array_slice($aktivitas, 0, 6);
         <?php endforeach; ?>
     </div>
 
-    <!-- Info Box -->
-    <div class="info-box">
-        <i class="fas fa-shield-alt"></i> Akun terverifikasi sebagai <?= $_SESSION['role'] == 'admin' ? 'Administrator' : 'Petugas Distribusi' ?>.
-    </div>
+   <div class="info-box">
+    <i class="fas fa-shield-alt"></i> Akun terverifikasi sebagai <?= (isset($_COOKIE['role']) && $_COOKIE['role'] == 'admin') ? 'Administrator' : 'Petugas Distribusi' ?>.
 </div>
 
 <!-- MODAL EDIT PROFIL (CENTER & LEBAR) -->
