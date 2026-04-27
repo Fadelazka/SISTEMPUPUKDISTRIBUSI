@@ -118,12 +118,9 @@ if ($action === 'save') {
         $kecamatan = esc('petani_kecamatan');
 
         if ($id>0) {
-            $sql = "UPDATE petani SET nama='$nama',desa='$desa',luas_lahan='$luas',
-                    alokasi='$alokasi',status='$status',tgl_terima=$tgl,
-                    provinsi='$provinsi',kota='$kota',kecamatan='$kecamatan' WHERE id=$id";
+            $sql = "UPDATE petani SET nama='$nama',desa='$desa',luas_lahan='$luas', alokasi='$alokasi',status='$status',tgl_terima=$tgl, provinsi='$provinsi',kota='$kota',kecamatan='$kecamatan' WHERE id=$id";
         } else {
-            $sql = "INSERT INTO petani(nama,desa,luas_lahan,alokasi,status,tgl_terima,provinsi,kota,kecamatan)
-                    VALUES('$nama','$desa','$luas','$alokasi','$status',$tgl,'$provinsi','$kota','$kecamatan')";
+            $sql = "INSERT INTO petani(nama,desa,luas_lahan,alokasi,status,tgl_terima,provinsi,kota,kecamatan) VALUES('$nama','$desa','$luas','$alokasi','$status',$tgl,'$provinsi','$kota','$kecamatan')";
         }
         $response = mysqli_query($koneksi,$sql) ? ['status'=>'success'] : ['status'=>'error','msg'=>mysqli_error($koneksi)];
     }
@@ -142,12 +139,9 @@ if ($action === 'save') {
         $kecamatan = esc('dist_kecamatan');
 
         if ($id>0) {
-            $sql = "UPDATE distribusi SET tgl='$tgl',kelompok='$kelompok',pupuk='$pupuk',
-                    jumlah='$jumlah',tujuan='$tujuan',no_do='$no_do',
-                    provinsi='$provinsi',kota='$kota',kecamatan='$kecamatan' WHERE id=$id";
+            $sql = "UPDATE distribusi SET tgl='$tgl',kelompok='$kelompok',pupuk='$pupuk', jumlah='$jumlah',tujuan='$tujuan',no_do='$no_do', provinsi='$provinsi',kota='$kota',kecamatan='$kecamatan' WHERE id=$id";
         } else {
-            $sql = "INSERT INTO distribusi(tgl,kelompok,pupuk,jumlah,tujuan,no_do,provinsi,kota,kecamatan)
-                    VALUES('$tgl','$kelompok','$pupuk','$jumlah','$tujuan','$no_do','$provinsi','$kota','$kecamatan')";
+            $sql = "INSERT INTO distribusi(tgl,kelompok,pupuk,jumlah,tujuan,no_do,provinsi,kota,kecamatan) VALUES('$tgl','$kelompok','$pupuk','$jumlah','$tujuan','$no_do','$provinsi','$kota','$kecamatan')";
         }
         $response = mysqli_query($koneksi,$sql) ? ['status'=>'success'] : ['status'=>'error','msg'=>mysqli_error($koneksi)];
     }
@@ -162,16 +156,14 @@ if ($action === 'save') {
         $kecamatan = esc('lap_kecamatan');
 
         if ($id>0) {
-            $sql = "UPDATE laporan SET judul='$judul',deskripsi='$deskripsi',
-                    provinsi='$provinsi',kota='$kota',kecamatan='$kecamatan' WHERE id=$id";
+            $sql = "UPDATE laporan SET judul='$judul',deskripsi='$deskripsi', provinsi='$provinsi',kota='$kota',kecamatan='$kecamatan' WHERE id=$id";
         } else {
-            $sql = "INSERT INTO laporan(judul,deskripsi,provinsi,kota,kecamatan)
-                    VALUES('$judul','$deskripsi','$provinsi','$kota','$kecamatan')";
+            $sql = "INSERT INTO laporan(judul,deskripsi,provinsi,kota,kecamatan) VALUES('$judul','$deskripsi','$provinsi','$kota','$kecamatan')";
         }
         $response = mysqli_query($koneksi,$sql) ? ['status'=>'success'] : ['status'=>'error','msg'=>mysqli_error($koneksi)];
     }
 
-    // USER (GANTI SESSION KE COOKIE)
+    // USER 
     elseif ($type === 'user' && isset($_COOKIE['role']) && $_COOKIE['role']==='admin') {
         $id    = intval($_POST['id']??0);
         $nama  = esc('nama');
@@ -187,12 +179,10 @@ if ($action === 'save') {
                 $pw=escv(password_hash($_POST['password'],PASSWORD_DEFAULT));
                 $pwSql=",password='$pw'";
             }
-            $sql="UPDATE users SET nama='$nama',email='$email',role='$role'$pwSql,
-                  provinsi='$prov',kota='$kota2',kecamatan='$kec' WHERE id=$id";
+            $sql="UPDATE users SET nama='$nama',email='$email',role='$role'$pwSql, provinsi='$prov',kota='$kota2',kecamatan='$kec' WHERE id=$id";
         } else {
             $pw=escv(password_hash($_POST['password']??'password123',PASSWORD_DEFAULT));
-            $sql="INSERT INTO users(nama,email,password,role,provinsi,kota,kecamatan)
-                  VALUES('$nama','$email','$pw','$role','$prov','$kota2','$kec')";
+            $sql="INSERT INTO users(nama,email,password,role,provinsi,kota,kecamatan) VALUES('$nama','$email','$pw','$role','$prov','$kota2','$kec')";
         }
         $response = mysqli_query($koneksi,$sql) ? ['status'=>'success'] : ['status'=>'error','msg'=>mysqli_error($koneksi)];
     }
@@ -200,7 +190,6 @@ if ($action === 'save') {
     echo json_encode($response);
     exit();
 }
-
 // =====================================================================
 // 5. DELETE
 // =====================================================================
