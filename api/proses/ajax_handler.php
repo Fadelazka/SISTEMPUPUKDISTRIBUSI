@@ -179,7 +179,7 @@ if ($action === 'save') {
                 $pw=escv(password_hash($_POST['password'],PASSWORD_DEFAULT));
                 $pwSql=",password='$pw'";
             }
-            $sql="UPDATE users SET nama='$nama',email='$email',role='$role'$pwSql, provinsi='$prov',kota='$kota2',kecamatan='$kec' WHERE id=$id";
+            UPDATE users SET nama = '$nama', email = '$email' WHERE id = '$id_dari_cookie';
         } else {
             $pw=escv(password_hash($_POST['password']??'password123',PASSWORD_DEFAULT));
             $sql="INSERT INTO users(nama,email,password,role,provinsi,kota,kecamatan) VALUES('$nama','$email','$pw','$role','$prov','$kota2','$kec')";
