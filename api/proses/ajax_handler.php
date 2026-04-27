@@ -130,7 +130,6 @@ if ($action === 'save') {
         $tgl       = esc('tgl');
         $kelompok  = esc('kelompok');
         $pupuk     = esc('pupuk');
-       "UPDATE petani SET nama='$nama',desa='$desa',luas_lahan='$luas', alokasi='$alokasi',status='$status',tgl_terima=$tgl, provinsi='$provinsi',kota='$kota',kecamatan='$kecamatan' WHERE id=$id";  $jumlah    = $_POST['jumlah'] ? escv($_POST['jumlah']) : '0';
         $tujuan    = esc('tujuan');
         $no_do     = esc('no_do');
         $provinsi  = esc('dist_provinsi');
