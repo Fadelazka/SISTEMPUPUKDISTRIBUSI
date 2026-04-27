@@ -1,16 +1,18 @@
 <?php
 /**
- * AJAX Handler Lengkap
+ * AJAX Handler Lengkap - FULL FIX VERCEL
  */
 error_reporting(0);
-session_start();
+
 // Jaring Pengaman Error Database
 set_exception_handler(function($e) {
-    http_response_code(200); // Paksa status 200 OK agar JQuery tidak mengira ini koneksi error
+    http_response_code(200);
     header('Content-Type: application/json');
     echo json_encode(['status'=>'error', 'msg'=>'Crash DB: ' . $e->getMessage()]);
     exit();
 });
+
+// 1. UBAH SESSION JADI COOKIE DI SINI
 if (!isset($_COOKIE['id'])) {
     header('Content-Type: application/json');
     echo json_encode(['status'=>'error','msg'=>'Unauthorized']);
@@ -59,13 +61,9 @@ if ($action === 'getKecamatan') {
 
     $kecList = [];
     $r1 = mysqli_query($koneksi,$sql1);
-    while ($row = mysqli_fetch_assoc($r1)) {
-        if (!empty($row['kecamatan'])) $kecList[$row['kecamatan']] = true;
-    }
+    if($r1) while ($row = mysqli_fetch_assoc($r1)) { if (!empty($row['kecamatan'])) $kecList[$row['kecamatan']] = true; }
     $r2 = mysqli_query($koneksi,$sql2);
-    while ($row = mysqli_fetch_assoc($r2)) {
-        if (!empty($row['kecamatan'])) $kecList[$row['kecamatan']] = true;
-    }
+    if($r2) while ($row = mysqli_fetch_assoc($r2)) { if (!empty($row['kecamatan'])) $kecList[$row['kecamatan']] = true; }
     $result = array_keys($kecList);
     sort($result);
     echo json_encode(['status'=>'success','data'=>$result]);
@@ -79,7 +77,6 @@ if ($action === 'getForm') {
     $type = preg_replace('/[^a-zA-Z0-9_]/','',$_POST['type']??'');
     $id   = intval($_POST['id']??0);
 
-    // Perbaikan path: tambahkan kemungkinan file langsung di folder forms
     $paths = [
         __DIR__.'/forms/'.$type.'_form.php',
         __DIR__.'/form_'.$type.'.php',
@@ -112,8 +109,8 @@ if ($action === 'save') {
         $id        = intval($_POST['id']??0);
         $nama      = esc('nama');
         $desa      = esc('desa');
-        $luas      = esc('luas_lahan');
-        $alokasi   = esc('alokasi');
+        $luas      = $_POST['luas_lahan'] ? escv($_POST['luas_lahan']) : '0';
+        $alokasi   = $_POST['alokasi'] ? escv($_POST['alokasi']) : '0';
         $status    = esc('status');
         $tgl       = !empty($_POST['tgl_terima'])?"'".escv($_POST['tgl_terima'])."'":"NULL";
         $provinsi  = esc('petani_provinsi');
@@ -137,7 +134,7 @@ if ($action === 'save') {
         $tgl       = esc('tgl');
         $kelompok  = esc('kelompok');
         $pupuk     = esc('pupuk');
-        $jumlah    = esc('jumlah');
+        $jumlah    = $_POST['jumlah'] ? escv($_POST['jumlah']) : '0';
         $tujuan    = esc('tujuan');
         $no_do     = esc('no_do');
         $provinsi  = esc('dist_provinsi');
@@ -174,8 +171,8 @@ if ($action === 'save') {
         $response = mysqli_query($koneksi,$sql) ? ['status'=>'success'] : ['status'=>'error','msg'=>mysqli_error($koneksi)];
     }
 
-    // USER
-    elseif ($type === 'user' && $_COOKIE['role']==='admin') {
+    // USER (GANTI SESSION KE COOKIE)
+    elseif ($type === 'user' && isset($_COOKIE['role']) && $_COOKIE['role']==='admin') {
         $id    = intval($_POST['id']??0);
         $nama  = esc('nama');
         $email = esc('email');
@@ -216,7 +213,7 @@ if ($action === 'delete') {
         $tbl=$map[$type];
         mysqli_query($koneksi,"DELETE FROM $tbl WHERE id=$id");
         echo json_encode(['status'=>'success']);
-    } elseif ($type==='user' && $_COOKIE['role']==='admin') {
+    } elseif ($type==='user' && isset($_COOKIE['role']) && $_COOKIE['role']==='admin') {
         mysqli_query($koneksi,"DELETE FROM users WHERE id=$id AND role!='admin'");
         echo json_encode(['status'=>'success']);
     } else {
@@ -230,26 +227,32 @@ if ($action === 'delete') {
 // =====================================================================
 if ($action === 'updateProfile') {
     header('Content-Type: application/json; charset=utf-8');
-    $uid    = $_SESSION['id'];
+    
+    $uid = isset($_COOKIE['id']) ? intval($_COOKIE['id']) : 0;
+    if ($uid === 0) {
+        echo json_encode(['status'=>'error', 'msg'=>'Sesi login tidak valid (Cookie kosong)']);
+        exit();
+    }
+
     $fields = ['nama','bio','email','phone','nip','instansi','address','provinsi','kota','kecamatan'];
     $parts  = [];
     foreach ($fields as $f) {
-        $v=mysqli_real_escape_string($koneksi,$_POST[$f]??'');
-        $parts[]="$f='$v'";
+        $v = mysqli_real_escape_string($koneksi, $_POST[$f] ?? '');
+        $parts[] = "$f='$v'";
     }
     $tgl = !empty($_POST['tgl_lahir'])
-           ? "tgl_lahir='".mysqli_real_escape_string($koneksi,$_POST['tgl_lahir'])."'"
+           ? "tgl_lahir='".mysqli_real_escape_string($koneksi, $_POST['tgl_lahir'])."'"
            : "tgl_lahir=NULL";
-    $parts[]=$tgl;
-    $sql="UPDATE users SET ".implode(',',$parts)." WHERE id=$uid";
-    $uid    = $_COOKIE['id'];
-// ... (kode lainnya)
-if(mysqli_query($koneksi,$sql)){
-    $newName = $_POST['nama'] ?? $_COOKIE['nama'];
-    setcookie('nama', $newName, time() + 86400, "/"); // Update cookie nama
-    echo json_encode(['status'=>'success']);
-} else {
-        echo json_encode(['status'=>'error','msg'=>mysqli_error($koneksi)]);
+    $parts[] = $tgl;
+    
+    $sql = "UPDATE users SET " . implode(',', $parts) . " WHERE id=$uid";
+    
+    if (mysqli_query($koneksi, $sql)) {
+        $newName = $_POST['nama'] ?? $_COOKIE['nama'];
+        setcookie('nama', $newName, time() + 86400, "/");
+        echo json_encode(['status'=>'success']);
+    } else {
+        echo json_encode(['status'=>'error', 'msg'=>mysqli_error($koneksi)]);
     }
     exit();
 }
