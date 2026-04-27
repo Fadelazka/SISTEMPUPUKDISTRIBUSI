@@ -215,25 +215,18 @@ if ($action === 'delete') {
 // 6. UPDATE PROFILE
 // =====================================================================
 if ($action === 'updateProfile') {
-    header('Content-Type: application/json; charset=utf-8');
-    
-    $uid = isset($_COOKIE['id']) ? intval($_COOKIE['id']) : 0;
-    if ($uid === 0) {
-        echo json_encode(['status'=>'error', 'msg'=>'Sesi habis, silakan login ulang']);
-        exit();
-    }
-
-    // Hanya update kolom yang PASTI ada di database kamu
-    $nama  = mysqli_real_escape_string($koneksi, $_POST['nama'] ?? '');
+    $uid = intval($_COOKIE['id'] ?? 0);
+    $nama = mysqli_real_escape_string($koneksi, $_POST['nama'] ?? '');
     $email = mysqli_real_escape_string($koneksi, $_POST['email'] ?? '');
-    
+
+    // Hapus bio, nip, dll karena kolomnya tidak ada di database kamu
     $sql = "UPDATE users SET nama='$nama', email='$email' WHERE id=$uid";
-    
+
     if (mysqli_query($koneksi, $sql)) {
         setcookie('nama', $nama, time() + (86400 * 30), "/");
-        echo json_encode(['status'=>'success']);
+        echo json_encode(['status' => 'success']);
     } else {
-        echo json_encode(['status'=>'error', 'msg'=> mysqli_error($koneksi)]);
+        echo json_encode(['status' => 'error', 'msg' => mysqli_error($koneksi)]);
     }
     exit();
 }

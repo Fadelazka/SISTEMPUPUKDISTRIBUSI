@@ -226,18 +226,34 @@ $(function(){
         }
     };
 
-    window.openModal=function(type,id){
-        $.post('/api/proses/ajax_handler.php', { action:'getForm', type:type, id:id }, function(html){
-            $('#modalContent').html(html); $('#crudModal').fadeIn(200).css('display','flex');
-            $('#saveCrudBtn').off('click').on('click',function(){
-                var fd=$('#crudForm').serialize()+'&action=save&type='+type;
-                $.post('/api/proses/ajax_handler.php',fd,function(res){
-                    if(res.status==='success'){ $('#crudModal').fadeOut(200); loadPage($('.nav-item.active').data('page')); }
-                    else{ alert('Gagal menyimpan: '+(res.msg||'Error')); }
-                },'json');
-            });
+   window.openModal = function(type, id) {
+    $.post('/api/proses/ajax_handler.php', { action: 'getForm', type: type, id: id }, function(html) {
+        $('#modalContent').html(html);
+        $('#crudModal').fadeIn(200).css('display', 'flex');
+        
+        // Klik tombol simpan akan memicu submit form
+        $('#saveCrudBtn').off('click').on('click', function() {
+            $('#crudForm').submit();
         });
-    };
+    });
+};
+
+// Bagian ini diletakkan di LUAR openModal (sejajar dengan window.openModal)
+$(document).on('submit', '#crudForm', function(e) {
+    e.preventDefault();
+    
+    let fd = $(this).serialize();
+    fd += "&action=save"; // Menambahkan perintah simpan
+
+    $.post('/api/proses/ajax_handler.php', fd, function(res) {
+        if (res.status === 'success') {
+            $('#crudModal').fadeOut(200);
+            loadPage($('.nav-item.active').data('page'));
+        } else {
+            alert('Gagal menyimpan: ' + (res.msg || 'Error Unknown'));
+        }
+    }, 'json');
+});
     window.deleteData=function(type,id){ $.post('/api/proses/ajax_handler.php',{action:'delete',type:type,id:id},function(res){ if(res.status==='success') loadPage($('.nav-item.active').data('page')); },'json'); };
 
     // Klik menu & toggle sidebar di mobile
