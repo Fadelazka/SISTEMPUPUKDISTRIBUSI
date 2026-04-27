@@ -1,90 +1,80 @@
 <?php
-require_once __DIR__ . '/bps_widget.php';
-$domain  = bps_active_domain();
-$wilayah = bps_active_wilayah();
+try {
+    require_once __DIR__ . '/bps_widget.php';
+    $domain  = bps_active_domain();
+    $wilayah = bps_active_wilayah();
+    // Pengaman Cookie
+    $isAdmin = (isset($_COOKIE['role']) && $_COOKIE['role'] === 'admin');
 
-// 1. PENGAMAN COOKIE
-$isAdmin = (isset($_COOKIE['role']) && $_COOKIE['role'] === 'admin');
-
-$where = filter_where($koneksi);
-$queryChart = "SELECT pupuk, SUM(CAST(REPLACE(REPLACE(jumlah, ',', ''), ' ', '') AS UNSIGNED)) as total FROM distribusi WHERE $where GROUP BY pupuk";
-$resultChart = mysqli_query($koneksi, $queryChart);
-$chartLabels = []; $chartValues = []; $totalRealisasiKg = 0;
-
-// 2. PENGAMAN DATABASE (Mencegah crash jika query gagal)
-if ($resultChart) {
-    while ($row = mysqli_fetch_assoc($resultChart)) {
-        $chartLabels[] = $row['pupuk'];
-        $val = (int)$row['total'];
-        $chartValues[] = $val;
-        $totalRealisasiKg += $val;
+    $where = filter_where($koneksi);
+    
+    // Grafik 1
+    $queryChart = "SELECT pupuk, SUM(CAST(REPLACE(REPLACE(jumlah, ',', ''), ' ', '') AS UNSIGNED)) as total FROM distribusi WHERE $where GROUP BY pupuk";
+    $resultChart = mysqli_query($koneksi, $queryChart);
+    $chartLabels = []; $chartValues = []; $totalRealisasiKg = 0;
+    
+    // PENGAMAN 1: Cek apakah query berhasil sebelum di-fetch
+    if ($resultChart) {
+        while ($row = mysqli_fetch_assoc($resultChart)) {
+            $chartLabels[] = $row['pupuk'];
+            $val = (int)$row['total'];
+            $chartValues[] = $val;
+            $totalRealisasiKg += $val;
+        }
     }
-}
-if (empty($chartLabels)) { $chartLabels = ['Belum Ada Data']; $chartValues = [0]; }
+    if (empty($chartLabels)) { $chartLabels = ['Belum Ada Data']; $chartValues = [0]; }
 
-$targetTon = 68; $targetKg = $targetTon * 1000;
-$persentase = ($targetKg > 0) ? round(($totalRealisasiKg / $targetKg) * 100, 1) : 0;
+    $targetTon = 68; $targetKg = $targetTon * 1000;
+    $persentase = ($targetKg > 0) ? round(($totalRealisasiKg / $targetKg) * 100, 1) : 0;
 
-// --- GRAFIK PER PROVINSI ---
-$qProv = mysqli_query($koneksi,
-    "SELECT provinsi,
-            SUM(CAST(REPLACE(REPLACE(jumlah,',',''),' ','') AS UNSIGNED)) as total
-     FROM distribusi
-     WHERE provinsi IS NOT NULL AND provinsi != ''
-     GROUP BY provinsi
-     ORDER BY total DESC
-     LIMIT 15");
-$provLabels=[]; $provValues=[];
-if ($qProv) {
-    while($r=mysqli_fetch_assoc($qProv)){
-        $provLabels[]=$r['provinsi'];
-        $provValues[]=(int)$r['total'];
+    // Grafik 2
+    $qProv = mysqli_query($koneksi, "SELECT provinsi, SUM(CAST(REPLACE(REPLACE(jumlah,',',''),' ','') AS UNSIGNED)) as total FROM distribusi WHERE provinsi IS NOT NULL AND provinsi != '' GROUP BY provinsi ORDER BY total DESC LIMIT 15");
+    $provLabels=[]; $provValues=[];
+    if ($qProv) {
+        while($r=mysqli_fetch_assoc($qProv)){
+            $provLabels[]=$r['provinsi'];
+            $provValues[]=(int)$r['total'];
+        }
     }
-}
-$hasProvData = !empty($provLabels);
+    $hasProvData = !empty($provLabels);
 
-// --- GRAFIK TREND BULANAN ---
-$qBulan = mysqli_query($koneksi,
-    "SELECT DATE_FORMAT(tgl,'%Y-%m') as bulan,
-            DATE_FORMAT(tgl,'%b %Y') as label_bulan,
-            SUM(CAST(REPLACE(REPLACE(jumlah,',',''),' ','') AS UNSIGNED)) as total
-     FROM distribusi
-     WHERE $where AND tgl IS NOT NULL
-     GROUP BY DATE_FORMAT(tgl,'%Y-%m')
-     ORDER BY bulan ASC
-     LIMIT 12");
-$bulanLabels=[]; $bulanValues=[];
-if ($qBulan) {
-    while($r=mysqli_fetch_assoc($qBulan)){
-        $bulanLabels[]=$r['label_bulan'];
-        $bulanValues[]=(int)$r['total'];
+    // Grafik 3
+    $qBulan = mysqli_query($koneksi, "SELECT DATE_FORMAT(tgl,'%Y-%m') as bulan, DATE_FORMAT(tgl,'%b %Y') as label_bulan, SUM(CAST(REPLACE(REPLACE(jumlah,',',''),' ','') AS UNSIGNED)) as total FROM distribusi WHERE $where AND tgl IS NOT NULL GROUP BY DATE_FORMAT(tgl,'%Y-%m') ORDER BY bulan ASC LIMIT 12");
+    $bulanLabels=[]; $bulanValues=[];
+    if ($qBulan) {
+        while($r=mysqli_fetch_assoc($qBulan)){
+            $bulanLabels[]=$r['label_bulan'];
+            $bulanValues[]=(int)$r['total'];
+        }
     }
-}
-$hasBulanData=!empty($bulanLabels);
+    $hasBulanData=!empty($bulanLabels);
 
-$queryLaporan = mysqli_query($koneksi, "SELECT * FROM laporan ORDER BY created_at DESC");
-$laporan = [];
-if ($queryLaporan) {
-    while($r = mysqli_fetch_assoc($queryLaporan)) $laporan[] = $r;
-}
+    // Data Laporan Lokal
+    $queryLaporan = mysqli_query($koneksi, "SELECT * FROM laporan ORDER BY created_at DESC");
+    $laporan = [];
+    
+    // PENGAMAN 2: Cek keberadaan tabel laporan
+    if ($queryLaporan) {
+        while($r = mysqli_fetch_assoc($queryLaporan)) $laporan[] = $r;
+    }
 
-// 3. PENGAMAN API BPS (Tambah is_array untuk mencegah crash TypeError)
-$bpsTbl = bps_fetch('list/',['model'=>'statictable','domain'=>$domain,'lang'=>'ind','keyword'=>'produksi','page'=>1]);
-$tblList = (is_array($bpsTbl) && !empty($bpsTbl['data'][1])) ? array_slice($bpsTbl['data'][1],0,4) : [];
-if(empty($tblList)){
-    $bpsTbl2 = bps_fetch('list/',['model'=>'statictable','domain'=>'0000','lang'=>'ind','keyword'=>'produksi padi','page'=>1]);
-    $tblList = (is_array($bpsTbl2) && !empty($bpsTbl2['data'][1])) ? array_slice($bpsTbl2['data'][1],0,4) : [];
-}
-
-$bpsBrs = bps_fetch('list/',['model'=>'pressrelease','domain'=>$domain,'lang'=>'ind','keyword'=>'produksi','page'=>1]);
-$brsList = (is_array($bpsBrs) && !empty($bpsBrs['data'][1])) ? array_slice($bpsBrs['data'][1],0,3) : [];
-if(empty($brsList)){
-    $bpsBrs2 = bps_fetch('list/',['model'=>'pressrelease','domain'=>'0000','lang'=>'ind','keyword'=>'produksi','page'=>1]);
-    $brsList = (is_array($bpsBrs2) && !empty($bpsBrs2['data'][1])) ? array_slice($bpsBrs2['data'][1],0,3) : [];
-}
-
-$bpsInf = bps_fetch('list/',['model'=>'infographic','domain'=>'0000','lang'=>'ind','page'=>1,'keyword'=>'pupuk']);
-$infList = (is_array($bpsInf) && !empty($bpsInf['data'][1])) ? array_slice($bpsInf['data'][1],0,2) : [];
+    // PENGAMAN 3: API BPS dengan pengecekan is_array
+    $bpsTbl = bps_fetch('list/',['model'=>'statictable','domain'=>$domain,'lang'=>'ind','keyword'=>'produksi','page'=>1]);
+    $tblList = (is_array($bpsTbl) && !empty($bpsTbl['data'][1])) ? array_slice($bpsTbl['data'][1],0,4) : [];
+    if(empty($tblList)){
+        $bpsTbl2 = bps_fetch('list/',['model'=>'statictable','domain'=>'0000','lang'=>'ind','keyword'=>'produksi padi','page'=>1]);
+        $tblList = (is_array($bpsTbl2) && !empty($bpsTbl2['data'][1])) ? array_slice($bpsTbl2['data'][1],0,4) : [];
+    }
+    
+    $bpsBrs = bps_fetch('list/',['model'=>'pressrelease','domain'=>$domain,'lang'=>'ind','keyword'=>'produksi','page'=>1]);
+    $brsList = (is_array($bpsBrs) && !empty($bpsBrs['data'][1])) ? array_slice($bpsBrs['data'][1],0,3) : [];
+    if(empty($brsList)){
+        $bpsBrs2 = bps_fetch('list/',['model'=>'pressrelease','domain'=>'0000','lang'=>'ind','keyword'=>'produksi','page'=>1]);
+        $brsList = (is_array($bpsBrs2) && !empty($bpsBrs2['data'][1])) ? array_slice($bpsBrs2['data'][1],0,3) : [];
+    }
+    
+    $bpsInf = bps_fetch('list/',['model'=>'infographic','domain'=>'0000','lang'=>'ind','page'=>1,'keyword'=>'pupuk']);
+    $infList = (is_array($bpsInf) && !empty($bpsInf['data'][1])) ? array_slice($bpsInf['data'][1],0,2) : [];
 ?>
 
 <?= bps_wilayah_badge() ?>
@@ -95,13 +85,11 @@ $infList = (is_array($bpsInf) && !empty($bpsInf['data'][1])) ? array_slice($bpsI
 </div>
 <?php endif; ?>
 
-<!-- GRAFIK 1: Realisasi per Jenis Pupuk (sudah ada) -->
 <div style="background:white;padding:20px;border-radius:24px;margin-bottom:24px;">
     <h3 style="margin-bottom:16px; font-size:20px;">📊 Grafik Realisasi Pupuk Subsidi — <?= htmlspecialchars($wilayah) ?></h3>
     <canvas id="reportChart" height="160"></canvas>
 </div>
 
-<!-- TAMBAHAN: GRAFIK 2 - PERBANDINGAN ANTAR PROVINSI -->
 <?php if($hasProvData): ?>
 <div style="background:white;padding:24px;border-radius:24px;margin-bottom:24px;box-shadow:0 4px 16px rgba(0,0,0,0.05);">
     <div style="margin-bottom:16px;">
@@ -119,7 +107,6 @@ $infList = (is_array($bpsInf) && !empty($bpsInf['data'][1])) ? array_slice($bpsI
 </div>
 <?php endif; ?>
 
-<!-- TAMBAHAN: GRAFIK 3 - TREND BULANAN -->
 <?php if($hasBulanData && count($bulanLabels)>1): ?>
 <div style="background:white;padding:24px;border-radius:24px;margin-bottom:24px;box-shadow:0 4px 16px rgba(0,0,0,0.05);">
     <div style="margin-bottom:16px;">
@@ -132,14 +119,12 @@ $infList = (is_array($bpsInf) && !empty($bpsInf['data'][1])) ? array_slice($bpsI
 </div>
 <?php endif; ?>
 
-<!-- Stat Cards (ringkasan) -->
 <div class="stats-grid" style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:24px;">
     <div class="stat-card" style="flex:1;text-align:center;"><div class="stat-title">Target (nasional)</div><div class="stat-number" style="font-size:32px;"><?= $targetTon ?> ton</div></div>
     <div class="stat-card" style="flex:1;text-align:center;"><div class="stat-title">Total Realisasi</div><div class="stat-number" style="font-size:32px;color:#2d6a4f;"><?= number_format($totalRealisasiKg/1000, 1) ?> ton</div><div style="font-size:13px;">(<?= number_format($totalRealisasiKg,0,',','.') ?> kg)</div></div>
     <div class="stat-card" style="flex:1;text-align:center;"><div class="stat-title">Persentase</div><div class="stat-number" style="font-size:32px;color:#f59e0b;"><?= $persentase ?>%</div></div>
 </div>
 
-<!-- BPS: Tabel Produksi -->
 <?php if(!empty($tblList)): ?>
 <div style="display:flex;align-items:center;gap:8px;margin:0 0 12px;">
     <span style="background:#1e4a3b;color:#f5e7a4;font-size:10px;font-weight:800;padding:2px 10px;border-radius:20px;">BPS</span>
@@ -155,7 +140,6 @@ $infList = (is_array($bpsInf) && !empty($bpsInf['data'][1])) ? array_slice($bpsI
 </div>
 <?php endif; ?>
 
-<!-- BPS: Siaran Pers -->
 <?php if(!empty($brsList)): ?>
 <div style="display:flex;align-items:center;gap:8px;margin:0 0 12px;">
     <span style="background:#1e4a3b;color:#f5e7a4;font-size:10px;font-weight:800;padding:2px 10px;border-radius:20px;">BPS</span>
@@ -168,7 +152,6 @@ $infList = (is_array($bpsInf) && !empty($bpsInf['data'][1])) ? array_slice($bpsI
 </div>
 <?php endif; ?>
 
-<!-- BPS: Infografis -->
 <?php if(!empty($infList)): ?>
 <div style="display:flex;align-items:center;gap:8px;margin:0 0 12px;">
     <span style="background:#1e4a3b;color:#f5e7a4;font-size:10px;font-weight:800;padding:2px 10px;border-radius:20px;">BPS</span>
@@ -184,7 +167,6 @@ $infList = (is_array($bpsInf) && !empty($bpsInf['data'][1])) ? array_slice($bpsI
 </div>
 <?php endif; ?>
 
-<!-- Laporan Tertulis -->
 <h3 style="margin:10px 0 16px; font-size:20px;">📄 Laporan Tertulis (Lokal)</h3>
 <?php if(empty($laporan)): ?>
 <div class="info-box" style="text-align:center;">Belum ada laporan. Klik "Tambah Laporan" untuk membuat baru.</div>
@@ -204,55 +186,47 @@ $infList = (is_array($bpsInf) && !empty($bpsInf['data'][1])) ? array_slice($bpsI
     <?php endforeach; ?>
 <?php endif; ?>
 
-<!-- SCRIPT CHART (digabung dari kedua file) -->
 <script>
 (function(){
     if(typeof Chart === 'undefined') return;
-
-    // Chart 1: Realisasi per Jenis Pupuk (dari file pertama)
     var canvas1 = document.getElementById('reportChart');
     if(canvas1){
         var labels1 = <?= json_encode($chartLabels) ?>;
         var values1 = <?= json_encode($chartValues) ?>;
-        new Chart(canvas1.getContext('2d'), {
-            type: 'bar',
-            data: { labels: labels1, datasets: [{ label: 'Penyaluran (kg)', data: values1, backgroundColor: '#f5e7a4', borderRadius: 12, borderSkipped: false }] },
-            options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'top' }, tooltip: { callbacks: { label: function(ctx) { return ctx.dataset.label + ': ' + ctx.raw.toLocaleString('id-ID') + ' kg'; } } } }, scales: { y: { beginAtZero: true, title: { display: true, text: 'Kilogram (kg)' } }, x: { title: { display: true, text: 'Jenis Pupuk' } } } }
-        });
+        new Chart(canvas1.getContext('2d'), { type: 'bar', data: { labels: labels1, datasets: [{ label: 'Penyaluran (kg)', data: values1, backgroundColor: '#f5e7a4', borderRadius: 12, borderSkipped: false }] }, options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true, title: { display: true, text: 'Kilogram (kg)' } } } } });
     }
-
-    // Chart 2: Perbandingan Provinsi (tambahan)
     var canvas2 = document.getElementById('provChart');
     if(canvas2){
         var pLabels = <?= json_encode($provLabels) ?>;
         var pValues = <?= json_encode($provValues) ?>;
         var activeProv = <?= json_encode(filter_prov()) ?>;
         var pColors = pLabels.map(function(l){ return l === activeProv ? '#2d6a4f' : '#b7dfc8'; });
-        new Chart(canvas2.getContext('2d'), {
-            type: 'bar',
-            data: { labels: pLabels, datasets: [{ label: 'Total Distribusi (kg)', data: pValues, backgroundColor: pColors, borderRadius: 10, borderSkipped: false }] },
-            options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(ctx) { return ctx.raw.toLocaleString('id-ID') + ' kg'; } } } }, scales: { x: { beginAtZero: true, ticks: { callback: function(v){ return (v/1000).toFixed(0) + ' ton'; } } }, y: { grid: { display: false } } } }
-        });
+        new Chart(canvas2.getContext('2d'), { type: 'bar', data: { labels: pLabels, datasets: [{ label: 'Total Distribusi (kg)', data: pValues, backgroundColor: pColors, borderRadius: 10 }] }, options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } } } });
     }
-
-    // Chart 3: Trend Bulanan (tambahan)
     var canvas3 = document.getElementById('trendChart');
     if(canvas3){
         var bLabels = <?= json_encode($bulanLabels) ?>;
         var bValues = <?= json_encode($bulanValues) ?>;
-        new Chart(canvas3.getContext('2d'), {
-            type: 'line',
-            data: { labels: bLabels, datasets: [{ label: 'Distribusi (kg)', data: bValues, borderColor: '#2d6a4f', backgroundColor: 'rgba(45,106,79,0.08)', fill: true, tension: 0.4, pointBackgroundColor: '#2d6a4f', pointRadius: 5 }] },
-            options: { responsive: true, plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(ctx) { return ctx.raw.toLocaleString('id-ID') + ' kg'; } } } }, scales: { y: { beginAtZero: true, ticks: { callback: function(v){ return (v/1000).toFixed(1) + ' ton'; } } }, x: { grid: { display: false } } } }
-        });
+        new Chart(canvas3.getContext('2d'), { type: 'line', data: { labels: bLabels, datasets: [{ label: 'Distribusi (kg)', data: bValues, borderColor: '#2d6a4f', backgroundColor: 'rgba(45,106,79,0.08)', fill: true, tension: 0.4 }] }, options: { responsive: true, plugins: { legend: { display: false } } } });
     }
 })();
 </script>
 
 <div class="info-box">
     <i class="fas fa-chart-simple"></i>
-    Data realisasi dihitung dari tabel distribusi sesuai filter wilayah aktif.<br>
-    <strong>Filter saat ini:</strong> <?= has_filter() ? htmlspecialchars(implode(' › ', array_filter([filter_prov(), filter_kota(), filter_kec()]))) : 'Semua Wilayah' ?><br>
-    <strong>Total realisasi:</strong> <?= number_format($totalRealisasiKg,0,',','.') ?> kg (<?= number_format($totalRealisasiKg/1000,2) ?> ton)<br>
-    <strong>BPS Domain:</strong> <?= htmlspecialchars($domain) ?> (<?= htmlspecialchars($wilayah) ?>) &nbsp;|&nbsp; Update: <?= date('d F Y') ?>
+    Data realisasi dihitung dari tabel distribusi.<br>
+    <strong>Total realisasi:</strong> <?= number_format($totalRealisasiKg,0,',','.') ?> kg<br>
+    <strong>BPS Domain:</strong> <?= htmlspecialchars($domain) ?>
 </div>
+
+<?php
+// Penutup Sabuk Pengaman
+} catch (\Throwable $e) {
+    echo "<div style='background:#fee2e2; border-left:5px solid #ef4444; padding:20px; border-radius:12px; margin-top:20px;'>";
+    echo "<h3 style='color:#b91c1c; margin-bottom:10px;'><i class='fas fa-exclamation-triangle'></i> Terjadi Kesalahan (Crash)</h3>";
+    echo "<p style='color:#7f1d1d; font-size:14px;'>" . htmlspecialchars($e->getMessage()) . "</p>";
+    echo "<p style='color:#991b1b; font-size:12px; margin-top:8px;'>Baris: " . $e->getLine() . "</p>";
+    echo "<p style='color:#1e4a3b; font-size:13px; margin-top:14px;'><b>Tips:</b> Jika error menyebutkan tabel tidak ditemukan, pastikan <b>tabel 'laporan'</b> sudah dibuat di database TiDB-mu.</p>";
+    echo "</div>";
+}
+?>
