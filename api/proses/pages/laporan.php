@@ -39,7 +39,7 @@ try {
     $hasProvData = !empty($provLabels);
 
     // Grafik 3
-    $qBulan = mysqli_query($koneksi, "SELECT DATE_FORMAT(tgl,'%Y-%m') as bulan, DATE_FORMAT(tgl,'%b %Y') as label_bulan, SUM(CAST(REPLACE(REPLACE(jumlah,',',''),' ','') AS UNSIGNED)) as total FROM distribusi WHERE $where AND tgl IS NOT NULL GROUP BY DATE_FORMAT(tgl,'%Y-%m') ORDER BY bulan ASC LIMIT 12");
+    $qBulan = mysqli_query($koneksi, "SELECT DATE_FORMAT(tgl,'%Y-%m') as bulan, DATE_FORMAT(tgl,'%b %Y') as label_bulan, SUM(CAST(REPLACE(REPLACE(jumlah,',',''),' ','') AS UNSIGNED)) as total FROM distribusi WHERE $where AND tgl IS NOT NULL GROUP BY DATE_FORMAT(tgl,'%Y-%m'), DATE_FORMAT(tgl,'%b %Y') ORDER BY bulan ASC LIMIT 12");
     $bulanLabels=[]; $bulanValues=[];
     if ($qBulan) {
         while($r=mysqli_fetch_assoc($qBulan)){
