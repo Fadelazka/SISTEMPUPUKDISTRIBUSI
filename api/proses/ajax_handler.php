@@ -104,6 +104,26 @@ if ($action === 'save') {
     function esc($k){ global $koneksi; return mysqli_real_escape_string($koneksi,$_POST[$k]??''); }
     function escv($v){ global $koneksi; return mysqli_real_escape_string($koneksi,$v); }
 
+    /**
+     * Ambil field wilayah dengan fallback prefix BPS widget.
+     * bps_widget.php menghasilkan name="PREFIX_provinsi", bukan "provinsi".
+     * Fungsi ini coba semua kemungkinan prefix agar selalu dapat nilainya.
+     */
+    function escWilayah($field) {
+        global $koneksi;
+        // Coba tanpa prefix dulu
+        if (!empty($_POST[$field])) {
+            return mysqli_real_escape_string($koneksi, $_POST[$field]);
+        }
+        // Cari semua key yang diakhiri dengan _provinsi / _kota / _kecamatan
+        foreach ($_POST as $k => $v) {
+            if (!empty($v) && preg_match('/_' . preg_quote($field, '/') . '$/', $k)) {
+                return mysqli_real_escape_string($koneksi, $v);
+            }
+        }
+        return '';
+    }
+
     // PETANI
     if ($type === 'petani') {
         $id        = intval($_POST['id']??0);
@@ -113,9 +133,9 @@ if ($action === 'save') {
         $alokasi   = $_POST['alokasi'] ? escv($_POST['alokasi']) : '0';
         $status    = esc('status');
         $tgl       = !empty($_POST['tgl_terima'])?"'".escv($_POST['tgl_terima'])."'":"NULL";
-        $provinsi  = esc('provinsi');
-        $kota      = esc('kota');
-        $kecamatan = esc('kecamatan');
+        $provinsi  = escWilayah('provinsi');
+        $kota      = escWilayah('kota');
+        $kecamatan = escWilayah('kecamatan');
 
         if ($id>0) {
             $sql = "UPDATE petani SET nama='$nama',desa='$desa',luas_lahan='$luas', alokasi='$alokasi',status='$status',tgl_terima=$tgl, provinsi='$provinsi',kota='$kota',kecamatan='$kecamatan' WHERE id=$id";
@@ -134,9 +154,9 @@ if ($action === 'save') {
         $jumlah    = $_POST['jumlah'] ? escv($_POST['jumlah']) : '0';
         $tujuan    = esc('tujuan');
         $no_do     = esc('no_do');
-        $provinsi  = esc('provinsi');
-        $kota      = esc('kota');
-        $kecamatan = esc('kecamatan');
+        $provinsi  = escWilayah('provinsi');
+        $kota      = escWilayah('kota');
+        $kecamatan = escWilayah('kecamatan');
 
         if ($id>0) {
             $sql = "UPDATE distribusi SET tgl='$tgl',kelompok='$kelompok',pupuk='$pupuk', jumlah='$jumlah',tujuan='$tujuan',no_do='$no_do', provinsi='$provinsi',kota='$kota',kecamatan='$kecamatan' WHERE id=$id";
@@ -151,9 +171,9 @@ if ($action === 'save') {
         $id        = intval($_POST['id']??0);
         $judul     = esc('judul');
         $deskripsi = esc('deskripsi');
-        $provinsi  = esc('provinsi');
-        $kota      = esc('kota');
-        $kecamatan = esc('kecamatan');
+        $provinsi  = escWilayah('provinsi');
+        $kota      = escWilayah('kota');
+        $kecamatan = escWilayah('kecamatan');
 
         if ($id>0) {
             $sql = "UPDATE laporan SET judul='$judul',deskripsi='$deskripsi', provinsi='$provinsi',kota='$kota',kecamatan='$kecamatan' WHERE id=$id";
@@ -169,9 +189,9 @@ if ($action === 'save') {
         $nama  = esc('nama');
         $email = esc('email');
         $role  = esc('role');
-        $prov  = esc('provinsi');
-        $kota2 = esc('kota');
-        $kec   = esc('kecamatan');
+        $prov  = escWilayah('provinsi');
+        $kota2 = escWilayah('kota');
+        $kec   = escWilayah('kecamatan');
 
         if ($id>0) {
             $pwSql='';
@@ -179,7 +199,8 @@ if ($action === 'save') {
                 $pw=escv(password_hash($_POST['password'],PASSWORD_DEFAULT));
                 $pwSql=",password='$pw'";
             }
-            $sql="UPDATE users SET nama = '$nama', email = '$email' WHERE id = '$id_dari_cookie'";
+            // FIX: gunakan $id (bukan $id_dari_cookie yang tidak ada), dan update role+wilayah juga
+            $sql="UPDATE users SET nama='$nama', email='$email', role='$role', provinsi='$prov', kota='$kota2', kecamatan='$kec'$pwSql WHERE id=$id";
         } else {
             $pw=escv(password_hash($_POST['password']??'password123',PASSWORD_DEFAULT));
             $sql="INSERT INTO users(nama,email,password,role,provinsi,kota,kecamatan) VALUES('$nama','$email','$pw','$role','$prov','$kota2','$kec')";
@@ -215,18 +236,46 @@ if ($action === 'delete') {
 // 6. UPDATE PROFILE
 // =====================================================================
 if ($action === 'updateProfile') {
-    $uid = intval($_COOKIE['id'] ?? 0);
-    $nama = mysqli_real_escape_string($koneksi, $_POST['nama'] ?? '');
-    $email = mysqli_real_escape_string($koneksi, $_POST['email'] ?? '');
+    $uid      = intval($_COOKIE['id'] ?? 0);
+    $nama     = mysqli_real_escape_string($koneksi, $_POST['nama']     ?? '');
+    $email    = mysqli_real_escape_string($koneksi, $_POST['email']    ?? '');
+    $bio      = mysqli_real_escape_string($koneksi, $_POST['bio']      ?? '');
+    $phone    = mysqli_real_escape_string($koneksi, $_POST['phone']    ?? '');
+    $nip      = mysqli_real_escape_string($koneksi, $_POST['nip']      ?? '');
+    $instansi = mysqli_real_escape_string($koneksi, $_POST['instansi'] ?? '');
+    $address  = mysqli_real_escape_string($koneksi, $_POST['address']  ?? '');
 
-    // Hapus bio, nip, dll karena kolomnya tidak ada di database kamu
-    $sql = "UPDATE users SET nama='$nama', email='$email' WHERE id=$uid";
+    // Update semua kolom yang ada di form.
+    // Kolom bio, phone, nip, instansi, address harus sudah ada di tabel users TiDB.
+    // Jika belum ada, jalankan ALTER TABLE di bawah ini di TiDB Console:
+    // ALTER TABLE users
+    //   ADD COLUMN IF NOT EXISTS bio      TEXT,
+    //   ADD COLUMN IF NOT EXISTS phone    VARCHAR(20),
+    //   ADD COLUMN IF NOT EXISTS nip      VARCHAR(30),
+    //   ADD COLUMN IF NOT EXISTS instansi VARCHAR(100),
+    //   ADD COLUMN IF NOT EXISTS address  VARCHAR(200);
+    $sql = "UPDATE users SET 
+        nama='$nama', 
+        email='$email',
+        bio='$bio',
+        phone='$phone',
+        nip='$nip',
+        instansi='$instansi',
+        address='$address'
+        WHERE id=$uid";
 
     if (mysqli_query($koneksi, $sql)) {
         setcookie('nama', $nama, time() + (86400 * 30), "/");
         echo json_encode(['status' => 'success']);
     } else {
-        echo json_encode(['status' => 'error', 'msg' => mysqli_error($koneksi)]);
+        // Jika kolom belum ada di DB, coba fallback update nama & email saja
+        $sqlFallback = "UPDATE users SET nama='$nama', email='$email' WHERE id=$uid";
+        if (mysqli_query($koneksi, $sqlFallback)) {
+            setcookie('nama', $nama, time() + (86400 * 30), "/");
+            echo json_encode(['status' => 'success', 'msg' => 'Tersimpan sebagian (kolom bio/phone/nip belum ada di DB)']);
+        } else {
+            echo json_encode(['status' => 'error', 'msg' => mysqli_error($koneksi)]);
+        }
     }
     exit();
 }
