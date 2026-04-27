@@ -120,9 +120,28 @@ $indList = !empty($bpsInd['data'][1]) ? array_slice($bpsInd['data'][1], 0, 4) : 
                 }
             },
             scales: {
-                y: { beginAtZero: true, grid: { display: false } },
-                x: { grid: { display: false } }
+    y: { 
+        beginAtZero: true, 
+        grid: { display: false },
+        ticks: {
+            callback: function(value) {
+                return value.toLocaleString('id-ID') + ' kg';
             }
+        }
+    },
+    x: { 
+        grid: { display: false },
+        ticks: {
+            maxRotation: 45, // Miringkan tulisan 45 derajat biar nggak tabrakan
+            minRotation: 45,
+            autoSkip: false, // Tampilkan semua label pupuk
+            font: {
+                size: 10 // Kecilin sedikit ukuran font-nya biar muat
+            },
+            color: '#64748b' // Warna abu-abu biar estetik
+        }
+    }
+}
         },
         plugins: [ChartDataLabels]
     });
