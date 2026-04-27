@@ -66,13 +66,65 @@ $indList = !empty($bpsInd['data'][1]) ? array_slice($bpsInd['data'][1], 0, 4) : 
     <canvas id="berandaChart" height="150"></canvas>
 </div>
 
-<script>
+<div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 mb-8">
+    <canvas id="berandaChart" height="150"></canvas>
+</div>
+
+<div class="mt-8">
+    <div class="flex items-center gap-2 mb-4">
+        <i class="fas fa-newspaper text-primary text-xl"></i>
+        <h3 class="font-bold text-slate-800 text-lg">Warta Subsidi Pupuk Indonesia</h3>
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 hover:border-primary transition-all">
+            <span class="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-1 rounded-md font-bold">INFO BPS</span>
+            <h4 class="font-bold text-slate-800 mt-2 text-sm">Tren Konsumsi Pupuk Subsidi Nasional 2026</h4>
+            <p class="text-xs text-slate-500 mt-1 leading-relaxed">BPS mencatat efisiensi distribusi meningkat 12% tahun ini berkat integrasi data NIK petani yang lebih akurat.</p>
+            <a href="#" class="text-primary text-[10px] font-bold mt-3 inline-block hover:underline">Baca Selengkapnya →</a>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 hover:border-primary transition-all">
+            <span class="text-[10px] bg-amber-100 text-amber-700 px-2 py-1 rounded-md font-bold">KEMENKEU</span>
+            <h4 class="font-bold text-slate-800 mt-2 text-sm">Alokasi Tambahan Subsidi Pupuk Rp 14 Triliun</h4>
+            <p class="text-xs text-slate-500 mt-1 leading-relaxed">Pemerintah memastikan ketersediaan pupuk urea dan NPK aman hingga musim tanam kedua di seluruh wilayah Indonesia.</p>
+            <a href="#" class="text-primary text-[10px] font-bold mt-3 inline-block hover:underline">Baca Selengkapnya →</a>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script> <script>
 (function() {
-    if (typeof Chart === 'undefined') return;
-    new Chart(document.getElementById('berandaChart').getContext('2d'), {
+    const ctx = document.getElementById('berandaChart').getContext('2d');
+    new Chart(ctx, {
         type: 'bar',
-        data: { labels: <?= json_encode($chartLabels) ?>, datasets: [{ label: 'Penyaluran (kg)', data: <?= json_encode($chartValues) ?>, backgroundColor: '#f5e7a4', borderRadius: 12 }] },
-        options: { responsive: true, plugins: { legend: { position: 'top' } } }
+        data: {
+            labels: <?= json_encode($chartLabels) ?>,
+            datasets: [{
+                label: 'Total Distribusi (kg)',
+                data: <?= json_encode($chartValues) ?>,
+                backgroundColor: '#2d6a4f',
+                borderRadius: 10,
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+                datalabels: { // Ini yang bikin muncul angka di atas diagram
+                    anchor: 'end',
+                    align: 'top',
+                    formatter: (value) => value.toLocaleString('id-ID') + ' kg',
+                    font: { weight: 'bold' }
+                }
+            },
+            scales: {
+                y: { beginAtZero: true, grid: { display: false } },
+                x: { grid: { display: false } }
+            }
+        },
+        plugins: [ChartDataLabels]
     });
 })();
 </script>
