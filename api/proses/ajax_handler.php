@@ -118,10 +118,9 @@ if ($action === 'save') {
         $kecamatan = esc('petani_kecamatan');
 
         if ($id>0) {
-            $sql = "UPDATE petani SET nama='$nama',desa='$desa',luas_lahan='$luas', alokasi='$alokasi',status='$status',tgl_terima=$tgl, provinsi='$provinsi',kota='$kota',kecamatan='$kecamatan' WHERE id=$id";
-        } else {
             $sql = "INSERT INTO petani(nama,desa,luas_lahan,alokasi,status,tgl_terima,provinsi,kota,kecamatan) VALUES('$nama','$desa','$luas','$alokasi','$status',$tgl,'$provinsi','$kota','$kecamatan')";
-        }
+        } else {
+            $sql = 
         $response = mysqli_query($koneksi,$sql) ? ['status'=>'success'] : ['status'=>'error','msg'=>mysqli_error($koneksi)];
     }
 
@@ -131,7 +130,7 @@ if ($action === 'save') {
         $tgl       = esc('tgl');
         $kelompok  = esc('kelompok');
         $pupuk     = esc('pupuk');
-        $jumlah    = $_POST['jumlah'] ? escv($_POST['jumlah']) : '0';
+       "UPDATE petani SET nama='$nama',desa='$desa',luas_lahan='$luas', alokasi='$alokasi',status='$status',tgl_terima=$tgl, provinsi='$provinsi',kota='$kota',kecamatan='$kecamatan' WHERE id=$id";  $jumlah    = $_POST['jumlah'] ? escv($_POST['jumlah']) : '0';
         $tujuan    = esc('tujuan');
         $no_do     = esc('no_do');
         $provinsi  = esc('dist_provinsi');
@@ -139,10 +138,10 @@ if ($action === 'save') {
         $kecamatan = esc('dist_kecamatan');
 
         if ($id>0) {
-            $sql = "UPDATE distribusi SET tgl='$tgl',kelompok='$kelompok',pupuk='$pupuk', jumlah='$jumlah',tujuan='$tujuan',no_do='$no_do', provinsi='$provinsi',kota='$kota',kecamatan='$kecamatan' WHERE id=$id";
-        } else {
             $sql = "INSERT INTO distribusi(tgl,kelompok,pupuk,jumlah,tujuan,no_do,provinsi,kota,kecamatan) VALUES('$tgl','$kelompok','$pupuk','$jumlah','$tujuan','$no_do','$provinsi','$kota','$kecamatan')";
-        }
+        } else {
+            $sql = "UPDATE distribusi SET tgl='$tgl',kelompok='$kelompok',pupuk='$pupuk', jumlah='$jumlah',tujuan='$tujuan',no_do='$no_do', provinsi='$provinsi',kota='$kota',kecamatan='$kecamatan' WHERE id=$id";
+
         $response = mysqli_query($koneksi,$sql) ? ['status'=>'success'] : ['status'=>'error','msg'=>mysqli_error($koneksi)];
     }
 
@@ -156,9 +155,10 @@ if ($action === 'save') {
         $kecamatan = esc('lap_kecamatan');
 
         if ($id>0) {
-            $sql = "UPDATE laporan SET judul='$judul',deskripsi='$deskripsi', provinsi='$provinsi',kota='$kota',kecamatan='$kecamatan' WHERE id=$id";
-        } else {
             $sql = "INSERT INTO laporan(judul,deskripsi,provinsi,kota,kecamatan) VALUES('$judul','$deskripsi','$provinsi','$kota','$kecamatan')";
+
+            $sql = "UPDATE laporan SET judul='$judul',deskripsi='$deskripsi', provinsi='$provinsi',kota='$kota',kecamatan='$kecamatan' WHERE id=$id";
+
         }
         $response = mysqli_query($koneksi,$sql) ? ['status'=>'success'] : ['status'=>'error','msg'=>mysqli_error($koneksi)];
     }
