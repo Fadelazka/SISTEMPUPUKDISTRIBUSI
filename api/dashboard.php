@@ -247,6 +247,7 @@ $(document).on('submit', '#crudForm', function(e) {
 
     $.post('/api/proses/ajax_handler.php', fd, function(res) {
         if (res.status === 'success') {
+            alert('Mantap! Data berhasil disimpan/diperbarui.'); // 👈 Ini pop-up notifikasinya
             $('#crudModal').fadeOut(200);
             loadPage($('.nav-item.active').data('page'));
         } else {

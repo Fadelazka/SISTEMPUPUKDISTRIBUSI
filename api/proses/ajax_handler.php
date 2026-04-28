@@ -96,8 +96,7 @@ if ($action === 'getForm') {
 
     // ⚡ MAGIC FIX: Suntikkan input "action" dan "type" secara paksa 
     // tepat di dalam tag pembuka <form> agar identitasnya tidak pernah tertinggal!
-    $html = preg_replace('/(<form[^>]*>)/i', '$1 <input type="hidden" name="action" value="save"><input type="hidden" name="type" value="'.$type.'">', $html);
-
+    $html = preg_replace('/(<form[^>]*>)/i', '$1 <input type="hidden" name="action" value="save"><input type="hidden" name="type" value="'.$type.'"><input type="hidden" name="id" value="'.$id.'">', $html);
     // Tampilkan form yang sudah kebal error
     echo $html;
     exit();
