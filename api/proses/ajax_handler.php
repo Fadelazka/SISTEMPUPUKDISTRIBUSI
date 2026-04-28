@@ -103,7 +103,7 @@ if ($action === 'save') {
 
     function esc($k){ global $koneksi; return mysqli_real_escape_string($koneksi,$_POST[$k]??''); }
     function escv($v){ global $koneksi; return mysqli_real_escape_string($koneksi,$v); }
-
+}
     /**
      * Ambil field wilayah dengan fallback prefix BPS widget.
      * bps_widget.php menghasilkan name="PREFIX_provinsi", bukan "provinsi".
