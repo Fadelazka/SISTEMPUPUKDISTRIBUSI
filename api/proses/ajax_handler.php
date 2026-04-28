@@ -104,14 +104,11 @@ if ($action === 'getForm') {
 }
 
 // =====================================================================
-// 4. SAVE DATA (PERBAIKAN FINAL STRUKTUR KURUNG)
+// 4. SAVE DATA (FULL VERSION UNTUK SEMUA FORM)
 // =====================================================================
 if ($action === 'save') {
     header('Content-Type: application/json; charset=utf-8');
-    
-    // Ganti baris $type ini (tambahkan strtolower dan trim)
-    $type     = strtolower(trim($_POST['type'] ?? '')); 
-    
+    $type     = strtolower(trim($_POST['type'] ?? ''));
     $response = ['status'=>'error','msg'=>'Unknown error'];
 
     function esc($k){ global $koneksi; return mysqli_real_escape_string($koneksi,$_POST[$k]??''); }
@@ -130,92 +127,55 @@ if ($action === 'save') {
         return '';
     }
 
-   // ---------------------------------------------------------
     // 1. PETANI
-    // ---------------------------------------------------------
     if ($type === 'petani') {
         $id        = intval($_POST['id']??0);
         $nama      = esc('nama');
-        // Tangkap input form (namanya alamat/desa di form, tapi masuk ke kolom 'desa' di DB)
         $desa      = !empty($_POST['desa']) ? esc('desa') : esc('alamat'); 
         $luas      = !empty($_POST['luas_lahan']) ? escv($_POST['luas_lahan']) : '0';
         $alokasi   = !empty($_POST['alokasi']) ? escv($_POST['alokasi']) : '0';
         $status    = !empty($_POST['status']) ? esc('status') : 'Aktif';
         $tgl       = !empty($_POST['tgl_terima']) ? "'".escv($_POST['tgl_terima'])."'" : "NULL";
         
-        // Tangkap wilayah
         $provinsi  = escWilayah('provinsi');
         $kota      = escWilayah('kota');
         $kecamatan = escWilayah('kecamatan');
     
         if ($id > 0) {
-            // UPDATE menggunakan kolom 'desa'
-            $sql = "UPDATE petani SET 
-                    nama='$nama', 
-                    desa='$desa', 
-                    luas_lahan='$luas', 
-                    alokasi='$alokasi', 
-                    status='$status', 
-                    tgl_terima=$tgl, 
-                    provinsi='$provinsi', 
-                    kota='$kota', 
-                    kecamatan='$kecamatan' 
-                    WHERE id=$id";
+            $sql = "UPDATE petani SET nama='$nama', desa='$desa', luas_lahan='$luas', alokasi='$alokasi', status='$status', tgl_terima=$tgl, provinsi='$provinsi', kota='$kota', kecamatan='$kecamatan' WHERE id=$id";
         } else {
-            // INSERT menggunakan kolom 'desa'
-            $sql = "INSERT INTO petani (nama, desa, luas_lahan, alokasi, status, tgl_terima, provinsi, kota, kecamatan) 
-                    VALUES ('$nama', '$desa', '$luas', '$alokasi', '$status', $tgl, '$provinsi', '$kota', '$kecamatan')";
+            $sql = "INSERT INTO petani (nama, desa, luas_lahan, alokasi, status, tgl_terima, provinsi, kota, kecamatan) VALUES ('$nama', '$desa', '$luas', '$alokasi', '$status', $tgl, '$provinsi', '$kota', '$kecamatan')";
         }
-        
         $response = mysqli_query($koneksi, $sql) ? ['status'=>'success'] : ['status'=>'error','msg'=>mysqli_error($koneksi)];
     }
-
-   // ---------------------------------------------------------
+    
     // 2. DISTRIBUSI
-    // ---------------------------------------------------------
     elseif ($type === 'distribusi') {
         $id        = intval($_POST['id']??0);
         $tgl       = esc('tgl');
         $kelompok  = esc('kelompok');
         $pupuk     = esc('pupuk');
-        // Perbaikan pada jumlah agar lebih aman jika kosong
         $jumlah    = !empty($_POST['jumlah']) ? escv($_POST['jumlah']) : '0'; 
         $tujuan    = esc('tujuan');
         
-        // Tangkap wilayah
         $provinsi  = escWilayah('provinsi');
         $kota      = escWilayah('kota');
         $kecamatan = escWilayah('kecamatan');
 
         if ($id > 0) {
-            // UPDATE tanpa menyertakan 'no_do'
-            $sql = "UPDATE distribusi SET 
-                    tgl='$tgl', 
-                    kelompok='$kelompok', 
-                    pupuk='$pupuk', 
-                    jumlah='$jumlah', 
-                    tujuan='$tujuan', 
-                    provinsi='$provinsi', 
-                    kota='$kota', 
-                    kecamatan='$kecamatan' 
-                    WHERE id=$id";
+            $sql = "UPDATE distribusi SET tgl='$tgl', kelompok='$kelompok', pupuk='$pupuk', jumlah='$jumlah', tujuan='$tujuan', provinsi='$provinsi', kota='$kota', kecamatan='$kecamatan' WHERE id=$id";
         } else {
-            // INSERT tanpa menyertakan 'no_do'
-            $sql = "INSERT INTO distribusi (tgl, kelompok, pupuk, jumlah, tujuan, provinsi, kota, kecamatan) 
-                    VALUES ('$tgl', '$kelompok', '$pupuk', '$jumlah', '$tujuan', '$provinsi', '$kota', '$kecamatan')";
+            $sql = "INSERT INTO distribusi (tgl, kelompok, pupuk, jumlah, tujuan, provinsi, kota, kecamatan) VALUES ('$tgl', '$kelompok', '$pupuk', '$jumlah', '$tujuan', '$provinsi', '$kota', '$kecamatan')";
         }
         $response = mysqli_query($koneksi, $sql) ? ['status'=>'success'] : ['status'=>'error','msg'=>mysqli_error($koneksi)];
     }
-
-    // ---------------------------------------------------------
+    
     // 3. LAPORAN
-    // ---------------------------------------------------------
     elseif ($type === 'laporan') {
         $id        = intval($_POST['id']??0);
         $judul     = esc('judul');
         $deskripsi = esc('deskripsi');
         
-        // Tangkap wilayah
         $provinsi  = escWilayah('provinsi');
         $kota      = escWilayah('kota');
         $kecamatan = escWilayah('kecamatan');
@@ -227,10 +187,8 @@ if ($action === 'save') {
         }
         $response = mysqli_query($koneksi, $sql) ? ['status'=>'success'] : ['status'=>'error','msg'=>mysqli_error($koneksi)];
     }
-
-    // ---------------------------------------------------------
+    
     // 4. KELOLA USER
-    // ---------------------------------------------------------
     elseif ($type === 'user') {
         $id = intval($_POST['id'] ?? 0);
         $nama = esc('nama');
@@ -240,7 +198,6 @@ if ($action === 'save') {
         $password = $_POST['password'] ?? '';
         $passQuery = "";
         
-        // Cek jika password diisi
         if (!empty($password)) {
             $hashed = password_hash($password, PASSWORD_DEFAULT);
             $passQuery = ", password='$hashed'";
@@ -249,18 +206,13 @@ if ($action === 'save') {
         if ($id > 0) {
             $sql = "UPDATE users SET nama='$nama', email='$email', role='$role' $passQuery WHERE id=$id";
         } else {
-            if (empty($password)) {
-                $hashed = password_hash('123456', PASSWORD_DEFAULT); // Password default kalau kosong
-            } else {
-                $hashed = password_hash($password, PASSWORD_DEFAULT);
-            }
+            $hashed = password_hash(!empty($password) ? $password : '123456', PASSWORD_DEFAULT);
             $sql = "INSERT INTO users (nama, email, role, password) VALUES ('$nama', '$email', '$role', '$hashed')";
         }
-
         $response = mysqli_query($koneksi, $sql) ? ['status' => 'success'] : ['status' => 'error', 'msg' => mysqli_error($koneksi)];
     }
 
-    // Kembalikan respons sukses ke Javascript
+    // Kembalikan respons ke Javascript
     echo json_encode($response);
     exit();
 }
