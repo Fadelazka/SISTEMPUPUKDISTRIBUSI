@@ -241,38 +241,32 @@ $(function(){
 // Bagian ini diletakkan di LUAR openModal (sejajar dengan window.openModal)
 $(document).on('submit', '#crudForm', function(e) {
     e.preventDefault();
-    
-    // Kita gunakan FormData agar semua input (termasuk file jika ada) terambil
-    let fd = new FormData(this); 
 
-    // WAJIB pakai $.ajax, jangan pakai $.post karena kita kirim FormData
+    // Gunakan FormData agar semua field (termasuk hidden input dari getForm) ikut terkirim
+    var fd = new FormData(this);
+
     $.ajax({
         url: '/api/proses/ajax_handler.php',
         type: 'POST',
         data: fd,
-        processData: false, // WAJIB: Agar data tidak diubah jadi string oleh jQuery
-        contentType: false, // WAJIB: Agar browser yang menentukan header content-type
+        processData: false, // WAJIB: jangan ubah FormData jadi string
+        contentType: false, // WAJIB: biarkan browser set Content-Type boundary
         dataType: 'json',
         success: function(res) {
             if (res.status === 'success') {
-                alert('Berhasil! Data telah diperbarui/ditambahkan.');
-                
-                // Tutup modal
                 $('#crudModal').fadeOut(200);
-                
-                // REFRESH DATA: Paksa muat ulang halaman dashboard yang aktif
-                // Tambahkan Timestamp (?_t=...) agar browser tidak menampilkan data lama (cache)
-                let currentPage = $('.nav-item.active').data('page');
+                // FIX: Ambil nama halaman saja (TANPA ?_t=timestamp) agar tidak error
+                var currentPage = $('.nav-item.active').data('page');
                 if (currentPage) {
-                    loadPage(currentPage + '?_t=' + Date.now());
+                    loadPage(currentPage); // loadPage hanya terima nama halaman bersih
                 }
             } else {
-                alert('Gagal simpan: ' + (res.msg || 'Terjadi kesalahan sistem'));
+                alert('Gagal menyimpan: ' + (res.msg || 'Unknown error'));
             }
         },
         error: function(xhr) {
-            alert('Fatal Error: Silakan cek koneksi atau script server.');
-            console.log(xhr.responseText);
+            alert('Gagal kirim data. Cek koneksi atau server.');
+            console.error(xhr.responseText);
         }
     });
 });
