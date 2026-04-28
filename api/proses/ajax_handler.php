@@ -94,7 +94,7 @@ if ($action === 'getForm') {
 }
 
 // =====================================================================
-// 4. SAVE DATA
+// 4. SAVE DATA (PERBAIKAN FATAL: Pindahkan Kurung Tutup ke Akhir)
 // =====================================================================
 if ($action === 'save') {
     header('Content-Type: application/json; charset=utf-8');
@@ -103,7 +103,8 @@ if ($action === 'save') {
 
     function esc($k){ global $koneksi; return mysqli_real_escape_string($koneksi,$_POST[$k]??''); }
     function escv($v){ global $koneksi; return mysqli_real_escape_string($koneksi,$v); }
-}
+    // } // <-- KESALAHAN FATAL: Kurung tutup dipindahkan ke akhir blok 'save'
+
     /**
      * Ambil field wilayah dengan fallback prefix BPS widget.
      * bps_widget.php menghasilkan name="PREFIX_provinsi", bukan "provinsi".
@@ -183,40 +184,46 @@ if ($action === 'save') {
         $response = mysqli_query($koneksi,$sql) ? ['status'=>'success'] : ['status'=>'error','msg'=>mysqli_error($koneksi)];
     }
 
-    // USER 
-    if ($type === 'user') {
-    $id = intval($_POST['id'] ?? 0);
-    $nama = mysqli_real_escape_string($koneksi, $_POST['nama'] ?? '');
-    $email = mysqli_real_escape_string($koneksi, $_POST['email'] ?? '');
-    $role = mysqli_real_escape_string($koneksi, $_POST['role'] ?? 'user');
-    
-    // Cek apakah password ikut diubah/diisi
-    $password = $_POST['password'] ?? '';
-    $passQuery = "";
-    
-    if (!empty($password)) {
-        // Jika password diisi, kita enkripsi dulu
-        $hashed = password_hash($password, PASSWORD_DEFAULT);
-        $passQuery = ", password='$hashed'";
-    }
-
-    if ($id > 0) {
-        // UPDATE: Update data user (password hanya diupdate kalau diisi)
-        $sql = "UPDATE users SET nama='$nama', email='$email', role='$role' $passQuery WHERE id=$id";
-    } else {
-        // INSERT: Tambah user baru (jika password kosong, set default '123456')
-        if (empty($password)) {
-            $hashed = password_hash('123456', PASSWORD_DEFAULT);
-        } else {
+    // USER (PERBAIKAN FATAL: Pindahkan ke dalam struktur elseif dan gunakan esc() )
+    elseif ($type === 'user') {
+        $id = intval($_POST['id'] ?? 0);
+        $nama = esc('nama'); // Gunakan esc() untuk konsistensi dan keamanan
+        $email = esc('email'); // Gunakan esc()
+        $role = esc('role'); // Gunakan esc()
+        
+        // Cek apakah password ikut diubah/diisi
+        $password = $_POST['password'] ?? '';
+        $passQuery = "";
+        
+        if (!empty($password)) {
+            // Jika password diisi, kita enkripsi dulu
             $hashed = password_hash($password, PASSWORD_DEFAULT);
+            $passQuery = ", password='$hashed'";
         }
-        $sql = "INSERT INTO users (nama, email, role, password) VALUES ('$nama', '$email', '$role', '$hashed')";
+
+        if ($id > 0) {
+            // UPDATE: Update data user (password hanya diupdate kalau diisi)
+            $sql = "UPDATE users SET nama='$nama', email='$email', role='$role' $passQuery WHERE id=$id";
+        } else {
+            // INSERT: Tambah user baru (jika password kosong, set default '123456')
+            if (empty($password)) {
+                $hashed = password_hash('123456', PASSWORD_DEFAULT);
+            } else {
+                $hashed = password_hash($password, PASSWORD_DEFAULT);
+            }
+            $sql = "INSERT INTO users (nama, email, role, password) VALUES ('$nama', '$email', '$role', '$hashed')";
+        }
+
+        $res = mysqli_query($koneksi, $sql);
+        $response = $res ? ['status' => 'success'] : ['status' => 'error', 'msg' => mysqli_error($koneksi)];
+        // exit(); // <-- HAPUS exit() Berlebihan di sini agar respons dikirim secara terpusat
     }
 
-    $res = mysqli_query($koneksi, $sql);
-    echo json_encode($res ? ['status' => 'success'] : ['status' => 'error', 'msg' => mysqli_error($koneksi)]);
-    exit();
-}
+    // Kirim respons final di akhir blok 'save'
+    echo json_encode($response);
+    exit(); // <-- EXIT blok 'save'
+} // <-- TUTUP KURUNG final blok 'save'
+
 // =====================================================================
 // 5. DELETE
 // =====================================================================
@@ -277,5 +284,8 @@ if ($action === 'updateProfile') {
     exit();
 }
 
+// =====================================================================
+// FALLBACK: Action tidak dikenal (Pindahkan ke paling akhir)
+// =====================================================================
 header('Content-Type: application/json; charset=utf-8');
 echo json_encode(['status'=>'error','msg'=>"Action tidak dikenal: '$action'"]);
