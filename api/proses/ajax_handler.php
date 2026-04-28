@@ -111,35 +111,38 @@ if ($action === 'save') {
     $type     = strtolower(trim($_POST['type'] ?? ''));
     $response = ['status'=>'error','msg'=>'Unknown error'];
 
-    function esc($k){ global $koneksi; return mysqli_real_escape_string($koneksi,$_POST[$k]??''); }
-    function escv($v){ global $koneksi; return mysqli_real_escape_string($koneksi,$v); }
+    // Gunakan fungsi Anonymous (Closure) agar TIDAK bentrok / Fatal Error!
+    $esc = function($key) use ($koneksi) {
+        return mysqli_real_escape_string($koneksi, $_POST[$key] ?? '');
+    };
+    
+    $escv = function($val) use ($koneksi) {
+        return mysqli_real_escape_string($koneksi, $val);
+    };
 
-    function escWilayah($field) {
-        global $koneksi;
-        if (!empty($_POST[$field])) {
-            return mysqli_real_escape_string($koneksi, $_POST[$field]);
-        }
+    $escWilayah = function($field) use ($koneksi) {
+        if (!empty($_POST[$field])) return mysqli_real_escape_string($koneksi, $_POST[$field]);
         foreach ($_POST as $k => $v) {
             if (!empty($v) && preg_match('/_' . preg_quote($field, '/') . '$/', $k)) {
                 return mysqli_real_escape_string($koneksi, $v);
             }
         }
         return '';
-    }
+    };
 
     // 1. PETANI
     if ($type === 'petani') {
-        $id        = intval($_POST['id']??0);
-        $nama      = esc('nama');
-        $desa      = !empty($_POST['desa']) ? esc('desa') : esc('alamat'); 
-        $luas      = !empty($_POST['luas_lahan']) ? escv($_POST['luas_lahan']) : '0';
-        $alokasi   = !empty($_POST['alokasi']) ? escv($_POST['alokasi']) : '0';
-        $status    = !empty($_POST['status']) ? esc('status') : 'Aktif';
-        $tgl       = !empty($_POST['tgl_terima']) ? "'".escv($_POST['tgl_terima'])."'" : "NULL";
+        $id        = intval($_POST['id'] ?? 0);
+        $nama      = $esc('nama');
+        $desa      = !empty($_POST['desa']) ? $esc('desa') : $esc('alamat'); 
+        $luas      = !empty($_POST['luas_lahan']) ? $escv($_POST['luas_lahan']) : '0';
+        $alokasi   = !empty($_POST['alokasi']) ? $escv($_POST['alokasi']) : '0';
+        $status    = !empty($_POST['status']) ? $esc('status') : 'Aktif';
+        $tgl       = !empty($_POST['tgl_terima']) ? "'" . $escv($_POST['tgl_terima']) . "'" : "NULL";
         
-        $provinsi  = escWilayah('provinsi');
-        $kota      = escWilayah('kota');
-        $kecamatan = escWilayah('kecamatan');
+        $provinsi  = $escWilayah('provinsi');
+        $kota      = $escWilayah('kota');
+        $kecamatan = $escWilayah('kecamatan');
     
         if ($id > 0) {
             $sql = "UPDATE petani SET nama='$nama', desa='$desa', luas_lahan='$luas', alokasi='$alokasi', status='$status', tgl_terima=$tgl, provinsi='$provinsi', kota='$kota', kecamatan='$kecamatan' WHERE id=$id";
@@ -151,16 +154,16 @@ if ($action === 'save') {
     
     // 2. DISTRIBUSI
     elseif ($type === 'distribusi') {
-        $id        = intval($_POST['id']??0);
-        $tgl       = esc('tgl');
-        $kelompok  = esc('kelompok');
-        $pupuk     = esc('pupuk');
-        $jumlah    = !empty($_POST['jumlah']) ? escv($_POST['jumlah']) : '0'; 
-        $tujuan    = esc('tujuan');
+        $id        = intval($_POST['id'] ?? 0);
+        $tgl       = $esc('tgl');
+        $kelompok  = $esc('kelompok');
+        $pupuk     = $esc('pupuk');
+        $jumlah    = !empty($_POST['jumlah']) ? $escv($_POST['jumlah']) : '0'; 
+        $tujuan    = $esc('tujuan');
         
-        $provinsi  = escWilayah('provinsi');
-        $kota      = escWilayah('kota');
-        $kecamatan = escWilayah('kecamatan');
+        $provinsi  = $escWilayah('provinsi');
+        $kota      = $escWilayah('kota');
+        $kecamatan = $escWilayah('kecamatan');
 
         if ($id > 0) {
             $sql = "UPDATE distribusi SET tgl='$tgl', kelompok='$kelompok', pupuk='$pupuk', jumlah='$jumlah', tujuan='$tujuan', provinsi='$provinsi', kota='$kota', kecamatan='$kecamatan' WHERE id=$id";
@@ -172,13 +175,13 @@ if ($action === 'save') {
     
     // 3. LAPORAN
     elseif ($type === 'laporan') {
-        $id        = intval($_POST['id']??0);
-        $judul     = esc('judul');
-        $deskripsi = esc('deskripsi');
+        $id        = intval($_POST['id'] ?? 0);
+        $judul     = $esc('judul');
+        $deskripsi = $esc('deskripsi');
         
-        $provinsi  = escWilayah('provinsi');
-        $kota      = escWilayah('kota');
-        $kecamatan = escWilayah('kecamatan');
+        $provinsi  = $escWilayah('provinsi');
+        $kota      = $escWilayah('kota');
+        $kecamatan = $escWilayah('kecamatan');
 
         if ($id > 0) {
             $sql = "UPDATE laporan SET judul='$judul', deskripsi='$deskripsi', provinsi='$provinsi', kota='$kota', kecamatan='$kecamatan' WHERE id=$id";
@@ -191,9 +194,9 @@ if ($action === 'save') {
     // 4. KELOLA USER
     elseif ($type === 'user') {
         $id = intval($_POST['id'] ?? 0);
-        $nama = esc('nama');
-        $email = esc('email');
-        $role = !empty($_POST['role']) ? esc('role') : 'user';
+        $nama = $esc('nama');
+        $email = $esc('email');
+        $role = !empty($_POST['role']) ? $esc('role') : 'user';
         
         $password = $_POST['password'] ?? '';
         $passQuery = "";
