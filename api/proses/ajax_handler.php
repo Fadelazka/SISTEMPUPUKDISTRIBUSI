@@ -94,7 +94,7 @@ if ($action === 'getForm') {
 }
 
 // =====================================================================
-// 4. SAVE DATA (PERBAIKAN FATAL: Pindahkan Kurung Tutup ke Akhir)
+// 4. SAVE DATA
 // =====================================================================
 if ($action === 'save') {
     header('Content-Type: application/json; charset=utf-8');
@@ -103,7 +103,6 @@ if ($action === 'save') {
 
     function esc($k){ global $koneksi; return mysqli_real_escape_string($koneksi,$_POST[$k]??''); }
     function escv($v){ global $koneksi; return mysqli_real_escape_string($koneksi,$v); }
-    // } // <-- KESALAHAN FATAL: Kurung tutup dipindahkan ke akhir blok 'save'
 
     /**
      * Ambil field wilayah dengan fallback prefix BPS widget.
@@ -184,28 +183,24 @@ if ($action === 'save') {
         $response = mysqli_query($koneksi,$sql) ? ['status'=>'success'] : ['status'=>'error','msg'=>mysqli_error($koneksi)];
     }
 
-    // USER (PERBAIKAN FATAL: Pindahkan ke dalam struktur elseif dan gunakan esc() )
-    elseif ($type === 'user') {
+    // USER (Telah ditambahkan kurung kurawal '{' dan diubah menjadi elseif)
+    elseif ($type === 'user') { 
         $id = intval($_POST['id'] ?? 0);
-        $nama = esc('nama'); // Gunakan esc() untuk konsistensi dan keamanan
-        $email = esc('email'); // Gunakan esc()
-        $role = esc('role'); // Gunakan esc()
+        $nama = mysqli_real_escape_string($koneksi, $_POST['nama'] ?? '');
+        $email = mysqli_real_escape_string($koneksi, $_POST['email'] ?? '');
+        $role = mysqli_real_escape_string($koneksi, $_POST['role'] ?? 'user');
         
-        // Cek apakah password ikut diubah/diisi
         $password = $_POST['password'] ?? '';
         $passQuery = "";
         
         if (!empty($password)) {
-            // Jika password diisi, kita enkripsi dulu
             $hashed = password_hash($password, PASSWORD_DEFAULT);
             $passQuery = ", password='$hashed'";
         }
 
         if ($id > 0) {
-            // UPDATE: Update data user (password hanya diupdate kalau diisi)
             $sql = "UPDATE users SET nama='$nama', email='$email', role='$role' $passQuery WHERE id=$id";
         } else {
-            // INSERT: Tambah user baru (jika password kosong, set default '123456')
             if (empty($password)) {
                 $hashed = password_hash('123456', PASSWORD_DEFAULT);
             } else {
@@ -216,76 +211,9 @@ if ($action === 'save') {
 
         $res = mysqli_query($koneksi, $sql);
         $response = $res ? ['status' => 'success'] : ['status' => 'error', 'msg' => mysqli_error($koneksi)];
-        // exit(); // <-- HAPUS exit() Berlebihan di sini agar respons dikirim secara terpusat
-    }
+    } // Kurung kurawal penutup untuk blok user
 
-    // Kirim respons final di akhir blok 'save'
+    // Kunci penyelesaian masalah (Mengirim respons status success secara terpusat)
     echo json_encode($response);
-    exit(); // <-- EXIT blok 'save'
-} // <-- TUTUP KURUNG final blok 'save'
-
-// =====================================================================
-// 5. DELETE
-// =====================================================================
-if ($action === 'delete') {
-    header('Content-Type: application/json; charset=utf-8');
-    $type = $_POST['type']??'';
-    $id   = intval($_POST['id']??0);
-    $map  = ['petani'=>'petani','distribusi'=>'distribusi','laporan'=>'laporan'];
-    if (isset($map[$type])) {
-        $tbl=$map[$type];
-        mysqli_query($koneksi,"DELETE FROM $tbl WHERE id=$id");
-        echo json_encode(['status'=>'success']);
-    } elseif ($type==='user' && isset($_COOKIE['role']) && $_COOKIE['role']==='admin') {
-        mysqli_query($koneksi,"DELETE FROM users WHERE id=$id AND role!='admin'");
-        echo json_encode(['status'=>'success']);
-    } else {
-        echo json_encode(['status'=>'error','msg'=>'Tipe tidak valid']);
-    }
     exit();
-}
-
-// =====================================================================
-// 6. UPDATE PROFILE
-// =====================================================================
-if ($action === 'updateProfile') {
-    $uid      = intval($_COOKIE['id'] ?? 0);
-    $nama     = mysqli_real_escape_string($koneksi, $_POST['nama']     ?? '');
-    $email    = mysqli_real_escape_string($koneksi, $_POST['email']    ?? '');
-    $bio      = mysqli_real_escape_string($koneksi, $_POST['bio']      ?? '');
-    $phone    = mysqli_real_escape_string($koneksi, $_POST['phone']    ?? '');
-    $nip      = mysqli_real_escape_string($koneksi, $_POST['nip']      ?? '');
-    $instansi = mysqli_real_escape_string($koneksi, $_POST['instansi'] ?? '');
-    $address  = mysqli_real_escape_string($koneksi, $_POST['address']  ?? '');
-
-    $sql = "UPDATE users SET 
-        nama='$nama', 
-        email='$email',
-        bio='$bio',
-        phone='$phone',
-        nip='$nip',
-        instansi='$instansi',
-        address='$address'
-        WHERE id=$uid";
-
-    if (mysqli_query($koneksi, $sql)) {
-        setcookie('nama', $nama, time() + (86400 * 30), "/");
-        echo json_encode(['status' => 'success']);
-    } else {
-        // Jika kolom belum ada di DB, coba fallback update nama & email saja
-        $sqlFallback = "UPDATE users SET nama='$nama', email='$email' WHERE id=$uid";
-        if (mysqli_query($koneksi, $sqlFallback)) {
-            setcookie('nama', $nama, time() + (86400 * 30), "/");
-            echo json_encode(['status' => 'success', 'msg' => 'Tersimpan sebagian (kolom bio/phone/nip belum ada di DB)']);
-        } else {
-            echo json_encode(['status' => 'error', 'msg' => mysqli_error($koneksi)]);
-        }
-    }
-    exit();
-}
-
-// =====================================================================
-// FALLBACK: Action tidak dikenal (Pindahkan ke paling akhir)
-// =====================================================================
-header('Content-Type: application/json; charset=utf-8');
-echo json_encode(['status'=>'error','msg'=>"Action tidak dikenal: '$action'"]);
+} // Ini adalah kurung penutup asli dari fungsi if ($action === 'save')
