@@ -247,17 +247,8 @@ $(document).on('submit', '#crudForm', function(e) {
 
     $.post('/api/proses/ajax_handler.php', fd, function(res) {
         if (res.status === 'success') {
-            // 1. Tampilkan notifikasi berhasil
-            alert('Mantap! Data berhasil disimpan/diperbarui.'); // 👈 Ini pop-up notifikasinya
-            // 2. Tutup modal secara perlahan
             $('#crudModal').fadeOut(200);
-
-            // 3. ⚡ PERBAIKAN REFRESH FATAL: Muat ulang data terbaru ke dashboard 
-            // Kita tambahkan ?_t=... agar browser tidak cache data lamanya
-            let activePage = ($('.nav-item.active').data('page'));
-            if (activePage) {
-                loadPage(activePage + '?_t=' + Date.now());
-            }
+            loadPage($('.nav-item.active').data('page'));
         } else {
             alert('Gagal menyimpan: ' + (res.msg || 'Error Unknown'));
         }
