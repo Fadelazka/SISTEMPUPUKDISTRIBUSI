@@ -242,17 +242,39 @@ $(function(){
 $(document).on('submit', '#crudForm', function(e) {
     e.preventDefault();
     
-    let fd = $(this).serialize();
-    fd += "&action=save"; // Menambahkan perintah simpan
+    // Kita gunakan FormData agar semua input (termasuk file jika ada) terambil
+    let fd = new FormData(this); 
 
-    $.post('/api/proses/ajax_handler.php', fd, function(res) {
-        if (res.status === 'success') {
-            $('#crudModal').fadeOut(200);
-            loadPage($('.nav-item.active').data('page'));
-        } else {
-            alert('Gagal menyimpan: ' + (res.msg || 'Error Unknown'));
+    // WAJIB pakai $.ajax, jangan pakai $.post karena kita kirim FormData
+    $.ajax({
+        url: '/api/proses/ajax_handler.php',
+        type: 'POST',
+        data: fd,
+        processData: false, // WAJIB: Agar data tidak diubah jadi string oleh jQuery
+        contentType: false, // WAJIB: Agar browser yang menentukan header content-type
+        dataType: 'json',
+        success: function(res) {
+            if (res.status === 'success') {
+                alert('Berhasil! Data telah diperbarui/ditambahkan.');
+                
+                // Tutup modal
+                $('#crudModal').fadeOut(200);
+                
+                // REFRESH DATA: Paksa muat ulang halaman dashboard yang aktif
+                // Tambahkan Timestamp (?_t=...) agar browser tidak menampilkan data lama (cache)
+                let currentPage = $('.nav-item.active').data('page');
+                if (currentPage) {
+                    loadPage(currentPage + '?_t=' + Date.now());
+                }
+            } else {
+                alert('Gagal simpan: ' + (res.msg || 'Terjadi kesalahan sistem'));
+            }
+        },
+        error: function(xhr) {
+            alert('Fatal Error: Silakan cek koneksi atau script server.');
+            console.log(xhr.responseText);
         }
-    }, 'json');
+    });
 });
     window.deleteData=function(type,id){ $.post('/api/proses/ajax_handler.php',{action:'delete',type:type,id:id},function(res){ if(res.status==='success') loadPage($('.nav-item.active').data('page')); },'json'); };
 
