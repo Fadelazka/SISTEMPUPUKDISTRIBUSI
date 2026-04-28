@@ -184,31 +184,37 @@ if ($action === 'save') {
     }
 
     // USER 
-    elseif ($type === 'user' && isset($_COOKIE['role']) && $_COOKIE['role']==='admin') {
-        $id    = intval($_POST['id']??0);
-        $nama  = esc('nama');
-        $email = esc('email');
-        $role  = esc('role');
-        $prov  = escWilayah('provinsi');
-        $kota2 = escWilayah('kota');
-        $kec   = escWilayah('kecamatan');
-
-        if ($id>0) {
-            $pwSql='';
-            if(!empty($_POST['password'])){
-                $pw=escv(password_hash($_POST['password'],PASSWORD_DEFAULT));
-                $pwSql=",password='$pw'";
-            }
-            // FIX: gunakan $id (bukan $id_dari_cookie yang tidak ada), dan update role+wilayah juga
-            $sql="UPDATE users SET nama='$nama', email='$email', role='$role', provinsi='$prov', kota='$kota2', kecamatan='$kec'$pwSql WHERE id=$id";
-        } else {
-            $pw=escv(password_hash($_POST['password']??'password123',PASSWORD_DEFAULT));
-            $sql="INSERT INTO users(nama,email,password,role,provinsi,kota,kecamatan) VALUES('$nama','$email','$pw','$role','$prov','$kota2','$kec')";
-        }
-        $response = mysqli_query($koneksi,$sql) ? ['status'=>'success'] : ['status'=>'error','msg'=>mysqli_error($koneksi)];
+    if ($type === 'user') {
+    $id = intval($_POST['id'] ?? 0);
+    $nama = mysqli_real_escape_string($koneksi, $_POST['nama'] ?? '');
+    $email = mysqli_real_escape_string($koneksi, $_POST['email'] ?? '');
+    $role = mysqli_real_escape_string($koneksi, $_POST['role'] ?? 'user');
+    
+    // Cek apakah password ikut diubah/diisi
+    $password = $_POST['password'] ?? '';
+    $passQuery = "";
+    
+    if (!empty($password)) {
+        // Jika password diisi, kita enkripsi dulu
+        $hashed = password_hash($password, PASSWORD_DEFAULT);
+        $passQuery = ", password='$hashed'";
     }
 
-    echo json_encode($response);
+    if ($id > 0) {
+        // UPDATE: Update data user (password hanya diupdate kalau diisi)
+        $sql = "UPDATE users SET nama='$nama', email='$email', role='$role' $passQuery WHERE id=$id";
+    } else {
+        // INSERT: Tambah user baru (jika password kosong, set default '123456')
+        if (empty($password)) {
+            $hashed = password_hash('123456', PASSWORD_DEFAULT);
+        } else {
+            $hashed = password_hash($password, PASSWORD_DEFAULT);
+        }
+        $sql = "INSERT INTO users (nama, email, role, password) VALUES ('$nama', '$email', '$role', '$hashed')";
+    }
+
+    $res = mysqli_query($koneksi, $sql);
+    echo json_encode($res ? ['status' => 'success'] : ['status' => 'error', 'msg' => mysqli_error($koneksi)]);
     exit();
 }
 // =====================================================================
