@@ -74,7 +74,7 @@ if ($action === 'getKecamatan') {
 // =====================================================================
 if ($action === 'getForm') {
     $type = preg_replace('/[^a-zA-Z0-9_]/','',$_POST['type']??'');
-    $id   = intval($_POST['id']??0);
+    $id   = intval($_POST['id']??0); // ID yang diminta (bisa 0 untuk baru)
 
     $paths = [
         __DIR__.'/forms/'.$type.'_form.php',
@@ -94,9 +94,10 @@ if ($action === 'getForm') {
     include $formFile; 
     $html = ob_get_clean();
 
-    // ⚡ MAGIC FIX: Suntikkan input "action" dan "type" secara paksa 
-    // tepat di dalam tag pembuka <form> agar identitasnya tidak pernah tertinggal!
+    // ⚡ MAGIC FIX V2: Suntikkan action, type, dan ID secara paksa tepat di dalam form tag
+    // Ini memastikan saat edit, ID datanya tidak pernah tertinggal dan tidak menimpa data lain.
     $html = preg_replace('/(<form[^>]*>)/i', '$1 <input type="hidden" name="action" value="save"><input type="hidden" name="type" value="'.$type.'"><input type="hidden" name="id" value="'.$id.'">', $html);
+
     // Tampilkan form yang sudah kebal error
     echo $html;
     exit();
