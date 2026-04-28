@@ -88,7 +88,18 @@ if ($action === 'getForm') {
         echo "<div style='color:red;padding:20px;font-size:15px;'>Form tidak ditemukan untuk tipe: ".htmlspecialchars($type)."</div>";
         exit();
     }
-    ob_start(); include $formFile; echo ob_get_clean();
+    
+    // Mulai tangkap file HTML form-nya
+    ob_start(); 
+    include $formFile; 
+    $html = ob_get_clean();
+
+    // ⚡ MAGIC FIX: Suntikkan input "action" dan "type" secara paksa 
+    // tepat di dalam tag pembuka <form> agar identitasnya tidak pernah tertinggal!
+    $html = preg_replace('/(<form[^>]*>)/i', '$1 <input type="hidden" name="action" value="save"><input type="hidden" name="type" value="'.$type.'">', $html);
+
+    // Tampilkan form yang sudah kebal error
+    echo $html;
     exit();
 }
 
@@ -97,7 +108,10 @@ if ($action === 'getForm') {
 // =====================================================================
 if ($action === 'save') {
     header('Content-Type: application/json; charset=utf-8');
-    $type     = $_POST['type'] ?? '';
+    
+    // Ganti baris $type ini (tambahkan strtolower dan trim)
+    $type     = strtolower(trim($_POST['type'] ?? '')); 
+    
     $response = ['status'=>'error','msg'=>'Unknown error'];
 
     function esc($k){ global $koneksi; return mysqli_real_escape_string($koneksi,$_POST[$k]??''); }
