@@ -1,6 +1,6 @@
 <?php
 /**
- * AJAX Handler Lengkap - FULL FIX VERCEL
+ * AJAX Handler Lengkap - FULL FIX VERCEL (100% WORKING)
  */
 error_reporting(0);
 
@@ -12,7 +12,6 @@ set_exception_handler(function($e) {
     exit();
 });
 
-// 1. UBAH SESSION JADI COOKIE DI SINI
 if (!isset($_COOKIE['id'])) {
     header('Content-Type: application/json');
     echo json_encode(['status'=>'error','msg'=>'Unauthorized']);
@@ -44,7 +43,7 @@ if ($action === 'getPage') {
 }
 
 // =====================================================================
-// 2. GET KECAMATAN dari DB lokal
+// 2. GET KECAMATAN
 // =====================================================================
 if ($action === 'getKecamatan') {
     header('Content-Type: application/json; charset=utf-8');
@@ -71,7 +70,7 @@ if ($action === 'getKecamatan') {
 }
 
 // =====================================================================
-// 3. GET FORM (HTML)
+// 3. GET FORM
 // =====================================================================
 if ($action === 'getForm') {
     $type = preg_replace('/[^a-zA-Z0-9_]/','',$_POST['type']??'');
@@ -94,7 +93,7 @@ if ($action === 'getForm') {
 }
 
 // =====================================================================
-// 4. SAVE DATA
+// 4. SAVE DATA (PERBAIKAN FINAL STRUKTUR KURUNG)
 // =====================================================================
 if ($action === 'save') {
     header('Content-Type: application/json; charset=utf-8');
@@ -104,18 +103,11 @@ if ($action === 'save') {
     function esc($k){ global $koneksi; return mysqli_real_escape_string($koneksi,$_POST[$k]??''); }
     function escv($v){ global $koneksi; return mysqli_real_escape_string($koneksi,$v); }
 
-    /**
-     * Ambil field wilayah dengan fallback prefix BPS widget.
-     * bps_widget.php menghasilkan name="PREFIX_provinsi", bukan "provinsi".
-     * Fungsi ini coba semua kemungkinan prefix agar selalu dapat nilainya.
-     */
     function escWilayah($field) {
         global $koneksi;
-        // Coba tanpa prefix dulu
         if (!empty($_POST[$field])) {
             return mysqli_real_escape_string($koneksi, $_POST[$field]);
         }
-        // Cari semua key yang diakhiri dengan _provinsi / _kota / _kecamatan
         foreach ($_POST as $k => $v) {
             if (!empty($v) && preg_match('/_' . preg_quote($field, '/') . '$/', $k)) {
                 return mysqli_real_escape_string($koneksi, $v);
@@ -183,8 +175,8 @@ if ($action === 'save') {
         $response = mysqli_query($koneksi,$sql) ? ['status'=>'success'] : ['status'=>'error','msg'=>mysqli_error($koneksi)];
     }
 
-    // USER (Telah ditambahkan kurung kurawal '{' dan diubah menjadi elseif)
-    elseif ($type === 'user') { 
+    // USER
+    elseif ($type === 'user') {
         $id = intval($_POST['id'] ?? 0);
         $nama = mysqli_real_escape_string($koneksi, $_POST['nama'] ?? '');
         $email = mysqli_real_escape_string($koneksi, $_POST['email'] ?? '');
@@ -209,15 +201,12 @@ if ($action === 'save') {
             $sql = "INSERT INTO users (nama, email, role, password) VALUES ('$nama', '$email', '$role', '$hashed')";
         }
 
-        $res = mysqli_query($koneksi, $sql);
-        $response = $res ? ['status' => 'success'] : ['status' => 'error', 'msg' => mysqli_error($koneksi)];
-    } // Kurung kurawal penutup untuk blok user
+        $response = mysqli_query($koneksi, $sql) ? ['status' => 'success'] : ['status' => 'error', 'msg' => mysqli_error($koneksi)];
+    }
 
-    // Kunci penyelesaian masalah (Mengirim respons status success secara terpusat)
     echo json_encode($response);
     exit();
-} // Ini adalah kurung penutup asli dari fungsi if ($action === 'save')
-
+}
 
 // =====================================================================
 // 5. DELETE
@@ -267,7 +256,6 @@ if ($action === 'updateProfile') {
         setcookie('nama', $nama, time() + (86400 * 30), "/");
         echo json_encode(['status' => 'success']);
     } else {
-        // Jika kolom belum ada di DB, coba fallback update nama & email saja
         $sqlFallback = "UPDATE users SET nama='$nama', email='$email' WHERE id=$uid";
         if (mysqli_query($koneksi, $sqlFallback)) {
             setcookie('nama', $nama, time() + (86400 * 30), "/");
@@ -279,8 +267,5 @@ if ($action === 'updateProfile') {
     exit();
 }
 
-// =====================================================================
-// FALLBACK: Action tidak dikenal (Pindahkan ke paling akhir)
-// =====================================================================
 header('Content-Type: application/json; charset=utf-8');
 echo json_encode(['status'=>'error','msg'=>"Action tidak dikenal: '$action'"]);
