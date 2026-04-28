@@ -130,45 +130,44 @@ if ($action === 'save') {
         return '';
     }
 
-    // PETANI
+    // ---------------------------------------------------------
+    // 1. PETANI
+    // ---------------------------------------------------------
     if ($type === 'petani') {
-    $id        = intval($_POST['id'] ?? 0); 
-    $nama      = mysqli_real_escape_string($koneksi, $_POST['nama'] ?? '');
-    $nik       = mysqli_real_escape_string($koneksi, $_POST['nik'] ?? '');
-    $alamat    = mysqli_real_escape_string($koneksi, $_POST['alamat'] ?? '');
-    $luas      = mysqli_real_escape_string($koneksi, $_POST['luas_lahan'] ?? '');
-    $alokasi   = mysqli_real_escape_string($koneksi, $_POST['alokasi'] ?? '');
+        $id        = intval($_POST['id']??0);
+        $nama      = esc('nama');
+        $alamat    = esc('alamat'); // Menyesuaikan dengan input form kamu
+        $luas      = $_POST['luas_lahan'] ? escv($_POST['luas_lahan']) : '0';
+        $alokasi   = $_POST['alokasi'] ? escv($_POST['alokasi']) : '0';
+        $status    = !empty($_POST['status']) ? esc('status') : 'Aktif';
+        $tgl       = !empty($_POST['tgl_terima']) ? "'".escv($_POST['tgl_terima'])."'" : "NULL";
+        
+        // Tangkap wilayah
+        $provinsi  = escWilayah('provinsi');
+        $kota      = escWilayah('kota');
+        $kecamatan = escWilayah('kecamatan');
     
-    // ⚡ INI YANG TERLEWAT: Tangkap data wilayah dari form
-    $provinsi  = mysqli_real_escape_string($koneksi, $_POST['provinsi'] ?? '');
-    $kota      = mysqli_real_escape_string($koneksi, $_POST['kota'] ?? '');
-    $kecamatan = mysqli_real_escape_string($koneksi, $_POST['kecamatan'] ?? '');
-
-    if ($id > 0) {
-        // Jika ID ada, maka UPDATE data beserta wilayahnya
-        $sql = "UPDATE petani SET 
-                nama='$nama', 
-                nik='$nik', 
-                alamat='$alamat', 
-                luas_lahan='$luas', 
-                alokasi='$alokasi',
-                provinsi='$provinsi',
-                kota='$kota',
-                kecamatan='$kecamatan'
-                WHERE id=$id";
-    } else {
-        // Jika ID 0, maka TAMBAH data baru beserta wilayahnya
-        $sql = "INSERT INTO petani (nama, nik, alamat, luas_lahan, alokasi, provinsi, kota, kecamatan, status) 
-                VALUES ('$nama', '$nik', '$alamat', '$luas', '$alokasi', '$provinsi', '$kota', '$kecamatan', 'Aktif')";
+        if ($id > 0) {
+            // UPDATE tanpa menyertakan 'nik'
+            $sql = "UPDATE petani SET 
+                    nama='$nama', 
+                    alamat='$alamat', 
+                    luas_lahan='$luas', 
+                    alokasi='$alokasi', 
+                    status='$status', 
+                    tgl_terima=$tgl, 
+                    provinsi='$provinsi', 
+                    kota='$kota', 
+                    kecamatan='$kecamatan' 
+                    WHERE id=$id";
+        } else {
+            // INSERT tanpa menyertakan 'nik'
+            $sql = "INSERT INTO petani (nama, alamat, luas_lahan, alokasi, status, tgl_terima, provinsi, kota, kecamatan) 
+                    VALUES ('$nama', '$alamat', '$luas', '$alokasi', '$status', $tgl, '$provinsi', '$kota', '$kecamatan')";
+        }
+        
+        $response = mysqli_query($koneksi, $sql) ? ['status'=>'success'] : ['status'=>'error','msg'=>mysqli_error($koneksi)];
     }
-    
-    if (mysqli_query($koneksi, $sql)) {
-        echo json_encode(['status' => 'success']);
-    } else {
-        echo json_encode(['status' => 'error', 'msg' => mysqli_error($koneksi)]);
-    }
-    exit();
-}
 
     // ---------------------------------------------------------
     // 2. DISTRIBUSI
