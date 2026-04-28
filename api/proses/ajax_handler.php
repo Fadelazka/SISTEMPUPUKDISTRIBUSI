@@ -217,3 +217,70 @@ if ($action === 'save') {
     echo json_encode($response);
     exit();
 } // Ini adalah kurung penutup asli dari fungsi if ($action === 'save')
+
+
+// =====================================================================
+// 5. DELETE
+// =====================================================================
+if ($action === 'delete') {
+    header('Content-Type: application/json; charset=utf-8');
+    $type = $_POST['type']??'';
+    $id   = intval($_POST['id']??0);
+    $map  = ['petani'=>'petani','distribusi'=>'distribusi','laporan'=>'laporan'];
+    if (isset($map[$type])) {
+        $tbl=$map[$type];
+        mysqli_query($koneksi,"DELETE FROM $tbl WHERE id=$id");
+        echo json_encode(['status'=>'success']);
+    } elseif ($type==='user' && isset($_COOKIE['role']) && $_COOKIE['role']==='admin') {
+        mysqli_query($koneksi,"DELETE FROM users WHERE id=$id AND role!='admin'");
+        echo json_encode(['status'=>'success']);
+    } else {
+        echo json_encode(['status'=>'error','msg'=>'Tipe tidak valid']);
+    }
+    exit();
+}
+
+// =====================================================================
+// 6. UPDATE PROFILE
+// =====================================================================
+if ($action === 'updateProfile') {
+    $uid      = intval($_COOKIE['id'] ?? 0);
+    $nama     = mysqli_real_escape_string($koneksi, $_POST['nama']     ?? '');
+    $email    = mysqli_real_escape_string($koneksi, $_POST['email']    ?? '');
+    $bio      = mysqli_real_escape_string($koneksi, $_POST['bio']      ?? '');
+    $phone    = mysqli_real_escape_string($koneksi, $_POST['phone']    ?? '');
+    $nip      = mysqli_real_escape_string($koneksi, $_POST['nip']      ?? '');
+    $instansi = mysqli_real_escape_string($koneksi, $_POST['instansi'] ?? '');
+    $address  = mysqli_real_escape_string($koneksi, $_POST['address']  ?? '');
+
+    $sql = "UPDATE users SET 
+        nama='$nama', 
+        email='$email',
+        bio='$bio',
+        phone='$phone',
+        nip='$nip',
+        instansi='$instansi',
+        address='$address'
+        WHERE id=$uid";
+
+    if (mysqli_query($koneksi, $sql)) {
+        setcookie('nama', $nama, time() + (86400 * 30), "/");
+        echo json_encode(['status' => 'success']);
+    } else {
+        // Jika kolom belum ada di DB, coba fallback update nama & email saja
+        $sqlFallback = "UPDATE users SET nama='$nama', email='$email' WHERE id=$uid";
+        if (mysqli_query($koneksi, $sqlFallback)) {
+            setcookie('nama', $nama, time() + (86400 * 30), "/");
+            echo json_encode(['status' => 'success', 'msg' => 'Tersimpan sebagian (kolom bio/phone/nip belum ada di DB)']);
+        } else {
+            echo json_encode(['status' => 'error', 'msg' => mysqli_error($koneksi)]);
+        }
+    }
+    exit();
+}
+
+// =====================================================================
+// FALLBACK: Action tidak dikenal (Pindahkan ke paling akhir)
+// =====================================================================
+header('Content-Type: application/json; charset=utf-8');
+echo json_encode(['status'=>'error','msg'=>"Action tidak dikenal: '$action'"]);
