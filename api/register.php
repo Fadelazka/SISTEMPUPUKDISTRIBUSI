@@ -39,13 +39,13 @@
         <?php if(isset($_SESSION['success'])): ?>
             <div class="success-msg"><?= $_SESSION['success']; unset($_SESSION['success']); ?></div>
         <?php endif; ?>
-        <form action="proses/prosesRegister.php" method="POST">
+        <form action="/api/proses/prosesRegister.php" method="POST">
             <div class="input-group"><i class="fas fa-user"></i><input type="text" name="nama" placeholder="Nama Lengkap" required></div>
             <div class="input-group"><i class="fas fa-envelope"></i><input type="email" name="email" placeholder="Alamat Email" required></div>
             <div class="input-group"><i class="fas fa-lock"></i><input type="password" name="password" placeholder="Password" required></div>
             <button type="submit" class="login-btn"><i class="fas fa-check-circle"></i> Daftar</button>
         </form>
-        <footer>Sudah punya akun? <a href="login.php">Login di sini</a></footer>
+        <footer>Sudah punya akun? <a href="/api/login.php">Login di sini</a></footer>
     </div>
 </div>
 </body>

@@ -1,17 +1,24 @@
 <?php
 /**
- * AJAX Handler Lengkap
+ * AJAX Handler Lengkap - FULL FIX VERCEL (100% WORKING)
  */
 error_reporting(0);
-session_start();
 
-if (!isset($_SESSION['id'])) {
+// Jaring Pengaman Error Database
+set_exception_handler(function($e) {
+    http_response_code(200);
+    header('Content-Type: application/json');
+    echo json_encode(['status'=>'error', 'msg'=>'Crash DB: ' . $e->getMessage()]);
+    exit();
+});
+
+if (!isset($_COOKIE['id'])) {
     header('Content-Type: application/json');
     echo json_encode(['status'=>'error','msg'=>'Unauthorized']);
     exit();
 }
 
-require __DIR__ . '../service/koneksi.php';
+require __DIR__ .  '/../service/koneksi.php';
 
 $action = trim($_POST['action'] ?? '');
 
@@ -36,7 +43,7 @@ if ($action === 'getPage') {
 }
 
 // =====================================================================
-// 2. GET KECAMATAN dari DB lokal
+// 2. GET KECAMATAN
 // =====================================================================
 if ($action === 'getKecamatan') {
     header('Content-Type: application/json; charset=utf-8');
@@ -53,13 +60,9 @@ if ($action === 'getKecamatan') {
 
     $kecList = [];
     $r1 = mysqli_query($koneksi,$sql1);
-    while ($row = mysqli_fetch_assoc($r1)) {
-        if (!empty($row['kecamatan'])) $kecList[$row['kecamatan']] = true;
-    }
+    if($r1) while ($row = mysqli_fetch_assoc($r1)) { if (!empty($row['kecamatan'])) $kecList[$row['kecamatan']] = true; }
     $r2 = mysqli_query($koneksi,$sql2);
-    while ($row = mysqli_fetch_assoc($r2)) {
-        if (!empty($row['kecamatan'])) $kecList[$row['kecamatan']] = true;
-    }
+    if($r2) while ($row = mysqli_fetch_assoc($r2)) { if (!empty($row['kecamatan'])) $kecList[$row['kecamatan']] = true; }
     $result = array_keys($kecList);
     sort($result);
     echo json_encode(['status'=>'success','data'=>$result]);
@@ -67,13 +70,12 @@ if ($action === 'getKecamatan') {
 }
 
 // =====================================================================
-// 3. GET FORM (HTML)
+// 3. GET FORM
 // =====================================================================
 if ($action === 'getForm') {
     $type = preg_replace('/[^a-zA-Z0-9_]/','',$_POST['type']??'');
-    $id   = intval($_POST['id']??0);
+    $id   = intval($_POST['id']??0); // ID yang diminta (bisa 0 untuk baru)
 
-    // Perbaikan path: tambahkan kemungkinan file langsung di folder forms
     $paths = [
         __DIR__.'/forms/'.$type.'_form.php',
         __DIR__.'/form_'.$type.'.php',
@@ -86,114 +88,134 @@ if ($action === 'getForm') {
         echo "<div style='color:red;padding:20px;font-size:15px;'>Form tidak ditemukan untuk tipe: ".htmlspecialchars($type)."</div>";
         exit();
     }
-    ob_start(); include $formFile; echo ob_get_clean();
+    
+    // Mulai tangkap file HTML form-nya
+    ob_start(); 
+    include $formFile; 
+    $html = ob_get_clean();
+
+    // ⚡ MAGIC FIX V2: Suntikkan action, type, dan ID secara paksa tepat di dalam form tag
+    // Ini memastikan saat edit, ID datanya tidak pernah tertinggal dan tidak menimpa data lain.
+    $html = preg_replace('/(<form[^>]*>)/i', '$1 <input type="hidden" name="action" value="save"><input type="hidden" name="type" value="'.$type.'"><input type="hidden" name="id" value="'.$id.'">', $html);
+
+    // Tampilkan form yang sudah kebal error
+    echo $html;
     exit();
 }
 
 // =====================================================================
-// 4. SAVE DATA
+// 4. SAVE DATA (FULL VERSION UNTUK SEMUA FORM)
 // =====================================================================
 if ($action === 'save') {
     header('Content-Type: application/json; charset=utf-8');
-    $type     = $_POST['type'] ?? '';
+    $type     = strtolower(trim($_POST['type'] ?? ''));
     $response = ['status'=>'error','msg'=>'Unknown error'];
 
-    function esc($k){ global $koneksi; return mysqli_real_escape_string($koneksi,$_POST[$k]??''); }
-    function escv($v){ global $koneksi; return mysqli_real_escape_string($koneksi,$v); }
+    // Gunakan fungsi Anonymous (Closure) agar TIDAK bentrok / Fatal Error!
+    $esc = function($key) use ($koneksi) {
+        return mysqli_real_escape_string($koneksi, $_POST[$key] ?? '');
+    };
+    
+    $escv = function($val) use ($koneksi) {
+        return mysqli_real_escape_string($koneksi, $val);
+    };
 
-    // PETANI
-    if ($type === 'petani') {
-        $id        = intval($_POST['id']??0);
-        $nama      = esc('nama');
-        $desa      = esc('desa');
-        $luas      = esc('luas_lahan');
-        $alokasi   = esc('alokasi');
-        $status    = esc('status');
-        $tgl       = !empty($_POST['tgl_terima'])?"'".escv($_POST['tgl_terima'])."'":"NULL";
-        $provinsi  = esc('petani_provinsi');
-        $kota      = esc('petani_kota');
-        $kecamatan = esc('petani_kecamatan');
-
-        if ($id>0) {
-            $sql = "UPDATE petani SET nama='$nama',desa='$desa',luas_lahan='$luas',
-                    alokasi='$alokasi',status='$status',tgl_terima=$tgl,
-                    provinsi='$provinsi',kota='$kota',kecamatan='$kecamatan' WHERE id=$id";
-        } else {
-            $sql = "INSERT INTO petani(nama,desa,luas_lahan,alokasi,status,tgl_terima,provinsi,kota,kecamatan)
-                    VALUES('$nama','$desa','$luas','$alokasi','$status',$tgl,'$provinsi','$kota','$kecamatan')";
-        }
-        $response = mysqli_query($koneksi,$sql) ? ['status'=>'success'] : ['status'=>'error','msg'=>mysqli_error($koneksi)];
-    }
-
-    // DISTRIBUSI
-    elseif ($type === 'distribusi') {
-        $id        = intval($_POST['id']??0);
-        $tgl       = esc('tgl');
-        $kelompok  = esc('kelompok');
-        $pupuk     = esc('pupuk');
-        $jumlah    = esc('jumlah');
-        $tujuan    = esc('tujuan');
-        $no_do     = esc('no_do');
-        $provinsi  = esc('dist_provinsi');
-        $kota      = esc('dist_kota');
-        $kecamatan = esc('dist_kecamatan');
-
-        if ($id>0) {
-            $sql = "UPDATE distribusi SET tgl='$tgl',kelompok='$kelompok',pupuk='$pupuk',
-                    jumlah='$jumlah',tujuan='$tujuan',no_do='$no_do',
-                    provinsi='$provinsi',kota='$kota',kecamatan='$kecamatan' WHERE id=$id";
-        } else {
-            $sql = "INSERT INTO distribusi(tgl,kelompok,pupuk,jumlah,tujuan,no_do,provinsi,kota,kecamatan)
-                    VALUES('$tgl','$kelompok','$pupuk','$jumlah','$tujuan','$no_do','$provinsi','$kota','$kecamatan')";
-        }
-        $response = mysqli_query($koneksi,$sql) ? ['status'=>'success'] : ['status'=>'error','msg'=>mysqli_error($koneksi)];
-    }
-
-    // LAPORAN
-    elseif ($type === 'laporan') {
-        $id        = intval($_POST['id']??0);
-        $judul     = esc('judul');
-        $deskripsi = esc('deskripsi');
-        $provinsi  = esc('lap_provinsi');
-        $kota      = esc('lap_kota');
-        $kecamatan = esc('lap_kecamatan');
-
-        if ($id>0) {
-            $sql = "UPDATE laporan SET judul='$judul',deskripsi='$deskripsi',
-                    provinsi='$provinsi',kota='$kota',kecamatan='$kecamatan' WHERE id=$id";
-        } else {
-            $sql = "INSERT INTO laporan(judul,deskripsi,provinsi,kota,kecamatan)
-                    VALUES('$judul','$deskripsi','$provinsi','$kota','$kecamatan')";
-        }
-        $response = mysqli_query($koneksi,$sql) ? ['status'=>'success'] : ['status'=>'error','msg'=>mysqli_error($koneksi)];
-    }
-
-    // USER
-    elseif ($type === 'user' && $_SESSION['role']==='admin') {
-        $id    = intval($_POST['id']??0);
-        $nama  = esc('nama');
-        $email = esc('email');
-        $role  = esc('role');
-        $prov  = esc('user_provinsi');
-        $kota2 = esc('user_kota');
-        $kec   = esc('user_kecamatan');
-
-        if ($id>0) {
-            $pwSql='';
-            if(!empty($_POST['password'])){
-                $pw=escv(password_hash($_POST['password'],PASSWORD_DEFAULT));
-                $pwSql=",password='$pw'";
+    $escWilayah = function($field) use ($koneksi) {
+        if (!empty($_POST[$field])) return mysqli_real_escape_string($koneksi, $_POST[$field]);
+        foreach ($_POST as $k => $v) {
+            if (!empty($v) && preg_match('/_' . preg_quote($field, '/') . '$/', $k)) {
+                return mysqli_real_escape_string($koneksi, $v);
             }
-            $sql="UPDATE users SET nama='$nama',email='$email',role='$role'$pwSql,
-                  provinsi='$prov',kota='$kota2',kecamatan='$kec' WHERE id=$id";
-        } else {
-            $pw=escv(password_hash($_POST['password']??'password123',PASSWORD_DEFAULT));
-            $sql="INSERT INTO users(nama,email,password,role,provinsi,kota,kecamatan)
-                  VALUES('$nama','$email','$pw','$role','$prov','$kota2','$kec')";
         }
-        $response = mysqli_query($koneksi,$sql) ? ['status'=>'success'] : ['status'=>'error','msg'=>mysqli_error($koneksi)];
+        return '';
+    };
+
+    // 1. PETANI
+    if ($type === 'petani') {
+        $id        = intval($_POST['id'] ?? 0);
+        $nama      = $esc('nama');
+        $desa      = !empty($_POST['desa']) ? $esc('desa') : $esc('alamat'); 
+        $luas      = !empty($_POST['luas_lahan']) ? $escv($_POST['luas_lahan']) : '0';
+        $alokasi   = !empty($_POST['alokasi']) ? $escv($_POST['alokasi']) : '0';
+        $status    = !empty($_POST['status']) ? $esc('status') : 'Aktif';
+        $tgl       = !empty($_POST['tgl_terima']) ? "'" . $escv($_POST['tgl_terima']) . "'" : "NULL";
+        
+        $provinsi  = $escWilayah('provinsi');
+        $kota      = $escWilayah('kota');
+        $kecamatan = $escWilayah('kecamatan');
+    
+        if ($id > 0) {
+            $sql = "UPDATE petani SET nama='$nama', desa='$desa', luas_lahan='$luas', alokasi='$alokasi', status='$status', tgl_terima=$tgl, provinsi='$provinsi', kota='$kota', kecamatan='$kecamatan' WHERE id=$id";
+        } else {
+            $sql = "INSERT INTO petani (nama, desa, luas_lahan, alokasi, status, tgl_terima, provinsi, kota, kecamatan) VALUES ('$nama', '$desa', '$luas', '$alokasi', '$status', $tgl, '$provinsi', '$kota', '$kecamatan')";
+        }
+        $response = mysqli_query($koneksi, $sql) ? ['status'=>'success'] : ['status'=>'error','msg'=>mysqli_error($koneksi)];
+    }
+    
+    // 2. DISTRIBUSI
+    elseif ($type === 'distribusi') {
+        $id        = intval($_POST['id'] ?? 0);
+        $tgl       = $esc('tgl');
+        $kelompok  = $esc('kelompok');
+        $pupuk     = $esc('pupuk');
+        $jumlah    = !empty($_POST['jumlah']) ? $escv($_POST['jumlah']) : '0'; 
+        $tujuan    = $esc('tujuan');
+        
+        $provinsi  = $escWilayah('provinsi');
+        $kota      = $escWilayah('kota');
+        $kecamatan = $escWilayah('kecamatan');
+
+        if ($id > 0) {
+            $sql = "UPDATE distribusi SET tgl='$tgl', kelompok='$kelompok', pupuk='$pupuk', jumlah='$jumlah', tujuan='$tujuan', provinsi='$provinsi', kota='$kota', kecamatan='$kecamatan' WHERE id=$id";
+        } else {
+            $sql = "INSERT INTO distribusi (tgl, kelompok, pupuk, jumlah, tujuan, provinsi, kota, kecamatan) VALUES ('$tgl', '$kelompok', '$pupuk', '$jumlah', '$tujuan', '$provinsi', '$kota', '$kecamatan')";
+        }
+        $response = mysqli_query($koneksi, $sql) ? ['status'=>'success'] : ['status'=>'error','msg'=>mysqli_error($koneksi)];
+    }
+    
+    // 3. LAPORAN
+    elseif ($type === 'laporan') {
+        $id        = intval($_POST['id'] ?? 0);
+        $judul     = $esc('judul');
+        $deskripsi = $esc('deskripsi');
+        
+        $provinsi  = $escWilayah('provinsi');
+        $kota      = $escWilayah('kota');
+        $kecamatan = $escWilayah('kecamatan');
+
+        if ($id > 0) {
+            $sql = "UPDATE laporan SET judul='$judul', deskripsi='$deskripsi', provinsi='$provinsi', kota='$kota', kecamatan='$kecamatan' WHERE id=$id";
+        } else {
+            $sql = "INSERT INTO laporan (judul, deskripsi, provinsi, kota, kecamatan) VALUES ('$judul', '$deskripsi', '$provinsi', '$kota', '$kecamatan')";
+        }
+        $response = mysqli_query($koneksi, $sql) ? ['status'=>'success'] : ['status'=>'error','msg'=>mysqli_error($koneksi)];
+    }
+    
+    // 4. KELOLA USER
+    elseif ($type === 'user') {
+        $id = intval($_POST['id'] ?? 0);
+        $nama = $esc('nama');
+        $email = $esc('email');
+        $role = !empty($_POST['role']) ? $esc('role') : 'user';
+        
+        $password = $_POST['password'] ?? '';
+        $passQuery = "";
+        
+        if (!empty($password)) {
+            $hashed = password_hash($password, PASSWORD_DEFAULT);
+            $passQuery = ", password='$hashed'";
+        }
+
+        if ($id > 0) {
+            $sql = "UPDATE users SET nama='$nama', email='$email', role='$role' $passQuery WHERE id=$id";
+        } else {
+            $hashed = password_hash(!empty($password) ? $password : '123456', PASSWORD_DEFAULT);
+            $sql = "INSERT INTO users (nama, email, role, password) VALUES ('$nama', '$email', '$role', '$hashed')";
+        }
+        $response = mysqli_query($koneksi, $sql) ? ['status' => 'success'] : ['status' => 'error', 'msg' => mysqli_error($koneksi)];
     }
 
+    // Kembalikan respons ke Javascript
     echo json_encode($response);
     exit();
 }
@@ -210,7 +232,7 @@ if ($action === 'delete') {
         $tbl=$map[$type];
         mysqli_query($koneksi,"DELETE FROM $tbl WHERE id=$id");
         echo json_encode(['status'=>'success']);
-    } elseif ($type==='user' && $_SESSION['role']==='admin') {
+    } elseif ($type==='user' && isset($_COOKIE['role']) && $_COOKIE['role']==='admin') {
         mysqli_query($koneksi,"DELETE FROM users WHERE id=$id AND role!='admin'");
         echo json_encode(['status'=>'success']);
     } else {
@@ -223,24 +245,36 @@ if ($action === 'delete') {
 // 6. UPDATE PROFILE
 // =====================================================================
 if ($action === 'updateProfile') {
-    header('Content-Type: application/json; charset=utf-8');
-    $uid    = $_SESSION['id'];
-    $fields = ['nama','bio','email','phone','nip','instansi','address','provinsi','kota','kecamatan'];
-    $parts  = [];
-    foreach ($fields as $f) {
-        $v=mysqli_real_escape_string($koneksi,$_POST[$f]??'');
-        $parts[]="$f='$v'";
-    }
-    $tgl = !empty($_POST['tgl_lahir'])
-           ? "tgl_lahir='".mysqli_real_escape_string($koneksi,$_POST['tgl_lahir'])."'"
-           : "tgl_lahir=NULL";
-    $parts[]=$tgl;
-    $sql="UPDATE users SET ".implode(',',$parts)." WHERE id=$uid";
-    if(mysqli_query($koneksi,$sql)){
-        $_SESSION['nama']=$_POST['nama']??$_SESSION['nama'];
-        echo json_encode(['status'=>'success']);
+    $uid      = intval($_COOKIE['id'] ?? 0);
+    $nama     = mysqli_real_escape_string($koneksi, $_POST['nama']     ?? '');
+    $email    = mysqli_real_escape_string($koneksi, $_POST['email']    ?? '');
+    $bio      = mysqli_real_escape_string($koneksi, $_POST['bio']      ?? '');
+    $phone    = mysqli_real_escape_string($koneksi, $_POST['phone']    ?? '');
+    $nip      = mysqli_real_escape_string($koneksi, $_POST['nip']      ?? '');
+    $instansi = mysqli_real_escape_string($koneksi, $_POST['instansi'] ?? '');
+    $address  = mysqli_real_escape_string($koneksi, $_POST['address']  ?? '');
+
+    $sql = "UPDATE users SET 
+        nama='$nama', 
+        email='$email',
+        bio='$bio',
+        phone='$phone',
+        nip='$nip',
+        instansi='$instansi',
+        address='$address'
+        WHERE id=$uid";
+
+    if (mysqli_query($koneksi, $sql)) {
+        setcookie('nama', $nama, time() + (86400 * 30), "/");
+        echo json_encode(['status' => 'success']);
     } else {
-        echo json_encode(['status'=>'error','msg'=>mysqli_error($koneksi)]);
+        $sqlFallback = "UPDATE users SET nama='$nama', email='$email' WHERE id=$uid";
+        if (mysqli_query($koneksi, $sqlFallback)) {
+            setcookie('nama', $nama, time() + (86400 * 30), "/");
+            echo json_encode(['status' => 'success', 'msg' => 'Tersimpan sebagian (kolom bio/phone/nip belum ada di DB)']);
+        } else {
+            echo json_encode(['status' => 'error', 'msg' => mysqli_error($koneksi)]);
+        }
     }
     exit();
 }

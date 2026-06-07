@@ -1,111 +1,578 @@
 <?php
 session_start();
-// Jika sudah login, arahkan ke dashboard
-if(isset($_SESSION['id'])) {
-    header("Location: dashboard.php");z
-    exit();
-}
+if(isset($_SESSION['id'])) { header("Location: /api/dashboard.php"); exit(); }
 ?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Distribusi Pupuk Subsidi</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Inter', sans-serif;
-        }
-        body {
-            min-height: 100vh;
-            background: linear-gradient(135deg, #0b3b2f 0%, #1a5d4a 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            overflow-x: hidden;
-        }
-        .container {
-            text-align: center;
-            z-index: 2;
-            animation: fadeSlideUp 0.8s ease;
-        }
-        @keyframes fadeSlideUp {
-            from { opacity: 0; transform: translateY(40px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .logo i {
-            font-size: 80px;
-            color: #f5e7a4;
-            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
-        }
-        h1 {
-            color: white;
-            font-size: 48px;
-            margin-top: 20px;
-            font-weight: 800;
-        }
-        p {
-            color: rgba(255,255,245,0.9);
-            font-size: 18px;
-            margin: 20px 0 30px;
-        }
-        .btn-group {
-            display: flex;
-            gap: 20px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-        .btn {
-            padding: 12px 32px;
-            border-radius: 44px;
-            font-size: 18px;
-            font-weight: 600;
-            text-decoration: none;
-            transition: 0.3s;
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .btn-primary {
-            background: #f5e7a4;
-            color: #1a4d3e;
-        }
-        .btn-primary:hover {
-            background: #ffe9a3;
-            transform: scale(1.05);
-        }
-        .btn-outline {
-            border: 2px solid #f5e7a4;
-            color: #f5e7a4;
-        }
-        .btn-outline:hover {
-            background: rgba(245,231,164,0.2);
-            transform: scale(1.05);
-        }
-        footer {
-            position: absolute;
-            bottom: 20px;
-            color: rgba(255,255,240,0.5);
-            font-size: 12px;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SubsidiTani — Sistem Distribusi Pupuk Bersubsidi</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --c-dark: #0a1f18;
+      --c-forest: #12362a;
+      --c-green: #1a5c42;
+      --c-emerald: #2d8c65;
+      --c-lime: #7ec88a;
+      --c-gold: #f5c842;
+      --c-cream: #fdf6e3;
+      --c-white: #ffffff;
+    }
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--c-dark);
+      color: var(--c-cream);
+      overflow-x: hidden;
+      min-height: 100vh;
+    }
+
+    /* ====== CANVAS BG ====== */
+    #bgCanvas { position:fixed; inset:0; z-index:0; opacity:.45; }
+
+    /* ====== NAV ====== */
+    nav {
+      position: fixed; top:0; left:0; right:0; z-index:100;
+      display: flex; align-items:center; justify-content:space-between;
+      padding: 20px 6vw;
+      background: linear-gradient(to bottom, rgba(10,31,24,.9), transparent);
+      backdrop-filter: blur(0px);
+      transition: all .4s;
+    }
+    nav.scrolled {
+      background: rgba(10,31,24,.95);
+      backdrop-filter: blur(16px);
+      padding: 14px 6vw;
+      box-shadow: 0 2px 30px rgba(0,0,0,.4);
+    }
+    .nav-logo {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 1.4rem;
+      color: var(--c-gold);
+      display: flex; align-items:center; gap:10px;
+      text-decoration: none;
+    }
+    .nav-logo .icon-wrap {
+      width:36px; height:36px;
+      background: var(--c-gold);
+      border-radius: 10px;
+      display: flex; align-items:center; justify-content:center;
+      color: var(--c-dark);
+      font-size:.9rem;
+    }
+    .nav-links { display:flex; gap:8px; align-items:center; }
+    .nav-links a {
+      font-size:.85rem; font-weight:500;
+      color: rgba(255,255,255,.75);
+      text-decoration:none;
+      padding: 8px 16px; border-radius: 40px;
+      transition:.25s;
+    }
+    .nav-links a:hover { color:#fff; background:rgba(255,255,255,.1); }
+    .btn-nav {
+      background: var(--c-gold) !important;
+      color: var(--c-dark) !important;
+      font-weight: 700 !important;
+      padding: 9px 22px !important;
+    }
+    .btn-nav:hover { transform:scale(1.04); background:#ffd84a !important; }
+
+    /* ====== HERO ====== */
+    .hero {
+      min-height: 100vh;
+      display: flex; align-items:center;
+      padding: 0 6vw;
+      position: relative; z-index:1;
+    }
+    .hero-inner { max-width:680px; }
+    .hero-badge {
+      display: inline-flex; align-items:center; gap:8px;
+      background: rgba(245,200,66,.15);
+      border: 1px solid rgba(245,200,66,.35);
+      color: var(--c-gold);
+      padding: 6px 16px; border-radius:40px;
+      font-size:.75rem; font-weight:600;
+      letter-spacing:.08em; text-transform:uppercase;
+      margin-bottom: 28px;
+      animation: fadeUp .8s ease both;
+    }
+    .hero-badge .dot { width:6px; height:6px; background:var(--c-gold); border-radius:50%; animation:pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.4)} }
+
+    h1 {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: clamp(2.8rem, 6vw, 5rem);
+      line-height: 1.08;
+      margin-bottom: 24px;
+      animation: fadeUp .8s .1s ease both;
+    }
+    h1 em { font-style:normal; color:var(--c-gold); }
+    .hero-sub {
+      font-size: 1.05rem;
+      line-height: 1.7;
+      color: rgba(253,246,227,.7);
+      margin-bottom: 40px;
+      max-width: 520px;
+      animation: fadeUp .8s .2s ease both;
+    }
+    .hero-cta {
+      display: flex; gap:16px; flex-wrap:wrap;
+      animation: fadeUp .8s .3s ease both;
+    }
+    .btn-primary-hero {
+      display: inline-flex; align-items:center; gap:10px;
+      background: var(--c-gold);
+      color: var(--c-dark);
+      font-family: 'Syne', sans-serif;
+      font-weight: 700; font-size:1rem;
+      padding: 14px 32px; border-radius:50px;
+      text-decoration: none;
+      transition: .3s;
+      box-shadow: 0 8px 30px rgba(245,200,66,.3);
+    }
+    .btn-primary-hero:hover { transform:translateY(-3px); box-shadow:0 16px 40px rgba(245,200,66,.4); }
+    .btn-outline-hero {
+      display: inline-flex; align-items:center; gap:10px;
+      border: 1.5px solid rgba(253,246,227,.3);
+      color: var(--c-cream);
+      font-weight: 500; font-size:1rem;
+      padding: 14px 32px; border-radius:50px;
+      text-decoration: none;
+      transition: .3s;
+    }
+    .btn-outline-hero:hover { border-color:var(--c-gold); color:var(--c-gold); background:rgba(245,200,66,.06); }
+
+    /* Stats bar */
+    .stats-row {
+      display: flex; gap:40px; flex-wrap:wrap;
+      margin-top: 60px;
+      padding-top: 40px;
+      border-top: 1px solid rgba(255,255,255,.1);
+      animation: fadeUp .8s .45s ease both;
+    }
+    .stat-item {}
+    .stat-num {
+      font-family:'Syne',sans-serif;
+      font-size:2rem; font-weight:800;
+      color: var(--c-gold);
+    }
+    .stat-label { font-size:.8rem; color:rgba(253,246,227,.55); margin-top:2px; }
+
+    /* Floating card - right side */
+    .hero-visual {
+      position:absolute; right:6vw; top:50%;
+      transform:translateY(-50%);
+      width: 360px;
+      animation: floatCard 6s ease-in-out infinite, fadeUp .8s .5s ease both;
+      display:none;
+    }
+    @media(min-width:1024px){.hero-visual{display:block;}}
+    @keyframes floatCard {
+      0%,100%{transform:translateY(-50%) translateY(0)}
+      50%{transform:translateY(-50%) translateY(-14px)}
+    }
+    .hcard {
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      backdrop-filter: blur(20px);
+      border-radius:24px;
+      padding:24px;
+      margin-bottom:12px;
+    }
+    .hcard-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+    .hcard-title { font-family:'Syne',sans-serif; font-weight:700; font-size:.85rem; color:#fff; }
+    .hcard-badge { background:rgba(126,200,138,.2); color:var(--c-lime); font-size:.65rem; font-weight:700; padding:3px 10px; border-radius:20px; }
+    .progress-bar-wrap { background:rgba(255,255,255,.1); border-radius:10px; height:8px; margin-bottom:8px; }
+    .progress-bar-fill {
+      height:8px; border-radius:10px;
+      background: linear-gradient(90deg, var(--c-lime), var(--c-gold));
+      animation: grow 2s 1s ease both;
+    }
+    @keyframes grow { from{width:0} }
+    .hcard-row { display:flex; justify-content:space-between; font-size:.75rem; color:rgba(253,246,227,.5); }
+    .price-row { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid rgba(255,255,255,.07); }
+    .price-row:last-child{border:none}
+    .p-name { font-size:.8rem; color:rgba(253,246,227,.8); display:flex; align-items:center; gap:8px; }
+    .p-dot { width:8px; height:8px; border-radius:50%; }
+    .p-price { font-family:'Syne',sans-serif; font-size:.85rem; font-weight:700; color:#fff; }
+    .p-change { font-size:.7rem; }
+    .up { color:var(--c-lime); }
+    .dn { color:#f87171; }
+    .notif-item { display:flex; gap:12px; align-items:flex-start; padding:10px 0; border-bottom:1px solid rgba(255,255,255,.07); }
+    .notif-item:last-child{border:none}
+    .notif-icon { width:32px; height:32px; border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:.75rem; }
+    .notif-text { font-size:.75rem; color:rgba(253,246,227,.75); line-height:1.4; }
+    .notif-time { font-size:.65rem; color:rgba(253,246,227,.35); margin-top:3px; }
+
+    /* ====== FEATURES ====== */
+    .section {
+      padding: 100px 6vw;
+      position: relative; z-index:1;
+    }
+    .section-label {
+      font-size:.72rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase;
+      color:var(--c-gold); margin-bottom:16px;
+    }
+    .section-title {
+      font-family:'Syne',sans-serif;
+      font-size: clamp(2rem, 4vw, 3rem);
+      font-weight:800; line-height:1.1;
+      margin-bottom:16px;
+    }
+    .section-sub { color:rgba(253,246,227,.6); max-width:560px; line-height:1.7; font-size:.95rem; margin-bottom:60px; }
+    .features-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:20px; }
+    .feat-card {
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 20px;
+      padding: 28px;
+      transition:.3s;
+      cursor:default;
+    }
+    .feat-card:hover {
+      background:rgba(255,255,255,.07);
+      border-color:rgba(245,200,66,.25);
+      transform:translateY(-4px);
+    }
+    .feat-icon {
+      width:48px; height:48px; border-radius:14px;
+      display:flex; align-items:center; justify-content:center;
+      font-size:1.1rem; margin-bottom:20px;
+    }
+    .feat-title { font-family:'Syne',sans-serif; font-weight:700; font-size:1rem; margin-bottom:8px; }
+    .feat-desc { font-size:.85rem; color:rgba(253,246,227,.55); line-height:1.65; }
+
+    /* ====== MARKETPLACE PREVIEW ====== */
+    .market-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:16px; }
+    .market-card {
+      background:rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.09);
+      border-radius:18px; padding:20px;
+      transition:.3s;
+    }
+    .market-card:hover { border-color:rgba(245,200,66,.3); transform:translateY(-3px); }
+    .market-img {
+      width:100%; aspect-ratio:1;
+      border-radius:12px;
+      background:linear-gradient(135deg,#1a5c42,#2d8c65);
+      display:flex; align-items:center; justify-content:center;
+      font-size:2.5rem; margin-bottom:14px;
+    }
+    .market-name { font-family:'Syne',sans-serif; font-weight:700; font-size:.9rem; margin-bottom:4px; }
+    .market-type { font-size:.72rem; color:rgba(253,246,227,.45); margin-bottom:12px; }
+    .market-price-row { display:flex; justify-content:space-between; align-items:center; }
+    .market-price { font-family:'Syne',sans-serif; font-weight:800; font-size:1rem; color:var(--c-gold); }
+    .market-stock { font-size:.7rem; padding:3px 8px; border-radius:20px; }
+    .stok-ada { background:rgba(126,200,138,.15); color:var(--c-lime); }
+    .stok-habis { background:rgba(248,113,113,.15); color:#f87171; }
+    .market-btn {
+      width:100%; margin-top:12px;
+      background:var(--c-gold); color:var(--c-dark);
+      border:none; border-radius:40px;
+      font-family:'Syne',sans-serif; font-weight:700; font-size:.8rem;
+      padding:9px; cursor:pointer; transition:.2s;
+      text-decoration:none; display:block; text-align:center;
+    }
+    .market-btn:hover { filter:brightness(1.1); }
+
+    /* ====== DIVIDER ====== */
+    .divider { border:none; border-top:1px solid rgba(255,255,255,.07); margin:0 6vw; }
+
+    /* ====== CTA BOTTOM ====== */
+    .cta-section {
+      padding:100px 6vw;
+      text-align:center;
+      position:relative; z-index:1;
+    }
+    .cta-box {
+      background:linear-gradient(135deg, rgba(45,140,101,.2), rgba(26,92,66,.3));
+      border:1px solid rgba(126,200,138,.2);
+      border-radius:32px;
+      padding:70px 40px;
+      max-width:760px; margin:auto;
+    }
+    .cta-title { font-family:'Syne',sans-serif; font-size:clamp(1.8rem,4vw,2.8rem); font-weight:800; margin-bottom:16px; }
+    .cta-sub { color:rgba(253,246,227,.65); font-size:.95rem; margin-bottom:40px; line-height:1.65; }
+    .cta-btns { display:flex; gap:16px; justify-content:center; flex-wrap:wrap; }
+
+    /* ====== FOOTER ====== */
+    footer {
+      padding:40px 6vw;
+      border-top:1px solid rgba(255,255,255,.07);
+      display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;
+      gap:16px; position:relative; z-index:1;
+    }
+    footer p { font-size:.8rem; color:rgba(253,246,227,.35); }
+    .footer-logo { font-family:'Syne',sans-serif; font-weight:800; color:var(--c-gold); font-size:.95rem; }
+
+    /* ====== ANIMATIONS ====== */
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(28px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    .reveal { opacity:0; transform:translateY(30px); transition:opacity .7s ease, transform .7s ease; }
+    .reveal.visible { opacity:1; transform:translateY(0); }
+
+    @media(max-width:640px){
+      .stats-row{gap:24px;}
+      .hero-cta{flex-direction:column;}
+      .btn-primary-hero,.btn-outline-hero{justify-content:center;}
+    }
+  </style>
 </head>
 <body>
-<div class="container">
-    <div class="logo"><i class="fas fa-seedling"></i></div>
-    <h1>Subsidi Tani</h1>
-    <p>Sistem Distribusi Pupuk Bersubsidi Terintegrasi<br>e-RDKK & i-Pubers</p>
-    <div class="btn-group">
-        <a href="api/login.php" class="btn btn-primary"><i class="fas fa-sign-in-alt"></i> Login</a>
-        <a href="api/register.php" class="btn btn-outline"><i class="fas fa-user-plus"></i> Daftar</a>
+
+<canvas id="bgCanvas"></canvas>
+
+<!-- NAV -->
+<nav id="mainNav">
+  <a href="#" class="nav-logo">
+    <div class="icon-wrap"><i class="fas fa-seedling"></i></div>
+    SubsidiTani
+  </a>
+  <div class="nav-links">
+    <a href="#fitur">Fitur</a>
+    <a href="#pasar">Pasar Pupuk</a>
+    <a href="api/login.php" class="btn-nav"><i class="fas fa-arrow-right-to-bracket"></i> Login</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-badge"><div class="dot"></div> Platform Distribusi Resmi Dinas Pertanian</div>
+    <h1>Distribusi Pupuk<br><em>Lebih Cerdas,</em><br>Lebih Merata</h1>
+    <p class="hero-sub">
+      Kelola alokasi pupuk bersubsidi secara real-time, pantau distribusi ke seluruh wilayah, dan jual-beli pupuk langsung dari platform terintegrasi e-RDKK & i-Pubers.
+    </p>
+    <div class="hero-cta">
+      <a href="api/login.php" class="btn-primary-hero"><i class="fas fa-rocket"></i> Mulai Sekarang</a>
+      <a href="api/register.php" class="btn-outline-hero"><i class="fas fa-user-plus"></i> Daftar Gratis</a>
     </div>
-</div>
-<footer>&copy; 2026 Dinas Pertanian</footer>
+    <div class="stats-row">
+      <div class="stat-item"><div class="stat-num">12K+</div><div class="stat-label">Petani Terdaftar</div></div>
+      <div class="stat-item"><div class="stat-num">98%</div><div class="stat-label">Akurasi Distribusi</div></div>
+      <div class="stat-item"><div class="stat-num">34</div><div class="stat-label">Provinsi Terhubung</div></div>
+    </div>
+  </div>
+
+  <!-- Floating cards -->
+  <div class="hero-visual">
+    <div class="hcard">
+      <div class="hcard-head">
+        <div class="hcard-title">Realisasi Distribusi</div>
+        <div class="hcard-badge">Live</div>
+      </div>
+      <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:72%"></div></div>
+      <div class="hcard-row"><span>72% tercapai</span><span>68 ton target</span></div>
+    </div>
+    <div class="hcard">
+      <div class="hcard-head"><div class="hcard-title">Harga Pasar Pupuk</div></div>
+      <div class="price-row">
+        <div class="p-name"><div class="p-dot" style="background:#7ec88a"></div>Urea Subsidi</div>
+        <div><div class="p-price">Rp 2.250</div><div class="p-change up">▲ 2.1%</div></div>
+      </div>
+      <div class="price-row">
+        <div class="p-name"><div class="p-dot" style="background:#f5c842"></div>NPK Phonska</div>
+        <div><div class="p-price">Rp 2.300</div><div class="p-change up">▲ 0.8%</div></div>
+      </div>
+      <div class="price-row">
+        <div class="p-name"><div class="p-dot" style="background:#60a5fa"></div>SP-36</div>
+        <div><div class="p-price">Rp 1.800</div><div class="p-change dn">▼ 0.3%</div></div>
+      </div>
+    </div>
+    <div class="hcard">
+      <div class="hcard-head"><div class="hcard-title">Notifikasi Terbaru</div></div>
+      <div class="notif-item">
+        <div class="notif-icon" style="background:rgba(126,200,138,.15);color:#7ec88a"><i class="fas fa-truck"></i></div>
+        <div><div class="notif-text">Kiriman Urea ke Kel. Tani Makmur <strong>sudah tiba</strong></div><div class="notif-time">2 menit lalu</div></div>
+      </div>
+      <div class="notif-item">
+        <div class="notif-icon" style="background:rgba(245,200,66,.15);color:#f5c842"><i class="fas fa-tag"></i></div>
+        <div><div class="notif-text">Harga NPK Phonska <strong>naik 0.8%</strong></div><div class="notif-time">15 menit lalu</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- FITUR -->
+<section class="section" id="fitur">
+  <div class="reveal">
+    <div class="section-label"><i class="fas fa-star"></i> Fitur Unggulan</div>
+    <h2 class="section-title">Semua yang Anda Butuhkan<br>dalam Satu Platform</h2>
+    <p class="section-sub">Dari tracking distribusi real-time hingga marketplace pupuk — SubsidiTani hadir sebagai ekosistem pertanian digital yang lengkap.</p>
+  </div>
+  <div class="features-grid reveal">
+    <div class="feat-card">
+      <div class="feat-icon" style="background:rgba(126,200,138,.15);color:#7ec88a"><i class="fas fa-map-location-dot"></i></div>
+      <div class="feat-title">Peta Distribusi Live</div>
+      <div class="feat-desc">Pantau pergerakan pupuk secara real-time dari gudang ke tangan petani dengan tracking interaktif berbasis peta.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon" style="background:rgba(245,200,66,.15);color:#f5c842"><i class="fas fa-store"></i></div>
+      <div class="feat-title">Pasar Pupuk Digital</div>
+      <div class="feat-desc">Jual dan beli pupuk langsung antar petani & distributor dengan sistem harga transparan dan pembayaran aman.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon" style="background:rgba(96,165,250,.15);color:#60a5fa"><i class="fas fa-comments"></i></div>
+      <div class="feat-title">Chat Petani & Distributor</div>
+      <div class="feat-desc">Komunikasi langsung antara petani dan petugas distribusi untuk konfirmasi, negosiasi, dan permintaan pupuk.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon" style="background:rgba(248,113,113,.15);color:#f87171"><i class="fas fa-bell"></i></div>
+      <div class="feat-title">Notifikasi Cerdas</div>
+      <div class="feat-desc">Terima notifikasi otomatis: harga terbaru, pupuk sudah tiba, stok menipis, hingga jadwal distribusi.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon" style="background:rgba(167,139,250,.15);color:#a78bfa"><i class="fas fa-chart-line"></i></div>
+      <div class="feat-title">Dashboard Analitik</div>
+      <div class="feat-desc">Statistik distribusi dengan grafik tren, progress realisasi, dan integrasi data BPS wilayah secara otomatis.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon" style="background:rgba(251,146,60,.15);color:#fb923c"><i class="fas fa-file-export"></i></div>
+      <div class="feat-title">Ekspor PDF & Excel</div>
+      <div class="feat-desc">Unduh laporan distribusi, data petani, dan realisasi dalam format PDF dan Excel siap cetak kapan saja.</div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- MARKETPLACE PREVIEW -->
+<section class="section" id="pasar">
+  <div class="reveal">
+    <div class="section-label"><i class="fas fa-seedling"></i> Pasar Pupuk Digital</div>
+    <h2 class="section-title">Beli & Jual Pupuk<br>Langsung dari Platform</h2>
+    <p class="section-sub">Temukan berbagai jenis pupuk dengan harga terbaik, stok terjamin, dan pengiriman langsung ke lokasi Anda.</p>
+  </div>
+  <div class="market-grid reveal">
+    <div class="market-card">
+      <div class="market-img">🌾</div>
+      <div class="market-name">Urea Subsidi</div>
+      <div class="market-type">Nitrogen tinggi • 46% N</div>
+      <div class="market-price-row">
+        <div class="market-price">Rp 2.250/kg</div>
+        <span class="market-stock stok-ada">Stok Ada</span>
+      </div>
+      <a href="api/login.php" class="market-btn">Pesan Sekarang</a>
+    </div>
+    <div class="market-card">
+      <div class="market-img">🌿</div>
+      <div class="market-name">NPK Phonska</div>
+      <div class="market-type">Majemuk lengkap • 15-15-15</div>
+      <div class="market-price-row">
+        <div class="market-price">Rp 2.300/kg</div>
+        <span class="market-stock stok-ada">Stok Ada</span>
+      </div>
+      <a href="api/login.php" class="market-btn">Pesan Sekarang</a>
+    </div>
+    <div class="market-card">
+      <div class="market-img">🌱</div>
+      <div class="market-name">SP-36</div>
+      <div class="market-type">Fosfat tinggi • 36% P₂O₅</div>
+      <div class="market-price-row">
+        <div class="market-price">Rp 1.800/kg</div>
+        <span class="market-stock stok-ada">Stok Ada</span>
+      </div>
+      <a href="api/login.php" class="market-btn">Pesan Sekarang</a>
+    </div>
+    <div class="market-card">
+      <div class="market-img">🌻</div>
+      <div class="market-name">ZA</div>
+      <div class="market-type">Sulfur & Nitrogen • 21% N</div>
+      <div class="market-price-row">
+        <div class="market-price">Rp 1.700/kg</div>
+        <span class="market-stock stok-habis">Stok Habis</span>
+      </div>
+      <a href="api/login.php" class="market-btn" style="opacity:.5;pointer-events:none">Habis</a>
+    </div>
+  </div>
+</section>
+
+<!-- CTA BOTTOM -->
+<section class="cta-section">
+  <div class="cta-box reveal">
+    <div class="section-label" style="margin-bottom:20px"><i class="fas fa-rocket"></i> Mulai Hari Ini</div>
+    <h2 class="cta-title">Siap Kelola Distribusi<br>dengan Lebih Efisien?</h2>
+    <p class="cta-sub">Bergabunglah bersama ribuan petani dan petugas yang sudah memanfaatkan SubsidiTani untuk distribusi pupuk yang transparan dan akuntabel.</p>
+    <div class="cta-btns">
+      <a href="api/register.php" class="btn-primary-hero"><i class="fas fa-user-plus"></i> Daftar Sekarang</a>
+      <a href="api/login.php" class="btn-outline-hero"><i class="fas fa-sign-in-alt"></i> Sudah Punya Akun</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div>
+    <div class="footer-logo">🌱 SubsidiTani</div>
+    <p style="margin-top:6px">Sistem Distribusi Pupuk Bersubsidi Terintegrasi e-RDKK & i-Pubers</p>
+  </div>
+  <p>&copy; 2026 Dinas Pertanian. Hak cipta dilindungi.</p>
+</footer>
+
+<script>
+// ====== CANVAS PARTICLES ======
+const canvas = document.getElementById('bgCanvas');
+const ctx = canvas.getContext('2d');
+let W, H, particles = [];
+
+function resize(){ W=canvas.width=window.innerWidth; H=canvas.height=window.innerHeight; }
+resize(); window.addEventListener('resize', resize);
+
+function Particle(){
+  this.x=Math.random()*W; this.y=Math.random()*H;
+  this.r=Math.random()*1.5+.5;
+  this.vx=(Math.random()-.5)*.3; this.vy=(Math.random()-.5)*.3;
+  this.alpha=Math.random()*.5+.1;
+}
+for(let i=0;i<120;i++) particles.push(new Particle());
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  particles.forEach(p=>{
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    ctx.fillStyle=`rgba(126,200,138,${p.alpha})`;
+    ctx.fill();
+    p.x+=p.vx; p.y+=p.vy;
+    if(p.x<0||p.x>W) p.vx*=-1;
+    if(p.y<0||p.y>H) p.vy*=-1;
+  });
+  // Draw connecting lines
+  particles.forEach((a,i)=>{
+    particles.slice(i+1).forEach(b=>{
+      const d=Math.hypot(a.x-b.x,a.y-b.y);
+      if(d<120){
+        ctx.beginPath();
+        ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y);
+        ctx.strokeStyle=`rgba(126,200,138,${.15*(1-d/120)})`;
+        ctx.lineWidth=.5; ctx.stroke();
+      }
+    });
+  });
+  requestAnimationFrame(draw);
+}
+draw();
+
+// ====== NAV SCROLL ======
+window.addEventListener('scroll',()=>{
+  document.getElementById('mainNav').classList.toggle('scrolled', window.scrollY>60);
+});
+
+// ====== REVEAL ON SCROLL ======
+const reveals = document.querySelectorAll('.reveal');
+const io = new IntersectionObserver(entries=>{
+  entries.forEach(e=>{ if(e.isIntersecting) e.target.classList.add('visible'); });
+},{threshold:.15});
+reveals.forEach(el=>io.observe(el));
+</script>
 </body>
 </html>
