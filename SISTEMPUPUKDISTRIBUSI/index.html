@@ -1,0 +1,111 @@
+<?php
+session_start();
+// Jika sudah login, arahkan ke dashboard
+if(isset($_SESSION['id'])) {
+    header("Location: /api/dashboard.php");
+    exit();
+}
+?>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Distribusi Pupuk Subsidi</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0b3b2f 0%, #1a5d4a 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow-x: hidden;
+        }
+        .container {
+            text-align: center;
+            z-index: 2;
+            animation: fadeSlideUp 0.8s ease;
+        }
+        @keyframes fadeSlideUp {
+            from { opacity: 0; transform: translateY(40px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .logo i {
+            font-size: 80px;
+            color: #f5e7a4;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
+        }
+        h1 {
+            color: white;
+            font-size: 48px;
+            margin-top: 20px;
+            font-weight: 800;
+        }
+        p {
+            color: rgba(255,255,245,0.9);
+            font-size: 18px;
+            margin: 20px 0 30px;
+        }
+        .btn-group {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 12px 32px;
+            border-radius: 44px;
+            font-size: 18px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .btn-primary {
+            background: #f5e7a4;
+            color: #1a4d3e;
+        }
+        .btn-primary:hover {
+            background: #ffe9a3;
+            transform: scale(1.05);
+        }
+        .btn-outline {
+            border: 2px solid #f5e7a4;
+            color: #f5e7a4;
+        }
+        .btn-outline:hover {
+            background: rgba(245,231,164,0.2);
+            transform: scale(1.05);
+        }
+        footer {
+            position: absolute;
+            bottom: 20px;
+            color: rgba(255,255,240,0.5);
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="logo"><i class="fas fa-seedling"></i></div>
+    <h1>Subsidi Tani</h1>
+    <p>Sistem Distribusi Pupuk Bersubsidi Terintegrasi<br>e-RDKK & i-Pubers</p>
+    <div class="btn-group">
+        <a href="api/login.php" class="btn btn-primary"><i class="fas fa-sign-in-alt"></i> Login</a>
+        <a href="api/register.php" class="btn btn-outline"><i class="fas fa-user-plus"></i> Daftar</a>
+    </div>
+</div>
+<footer>&copy; 2026 Dinas Pertanian</footer>
+</body>
+</html>
